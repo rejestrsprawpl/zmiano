@@ -69,6 +69,11 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mu
 .cal button{padding:8px 0;font-family:var(--f-mono);font-size:13px;border-radius:6px}
 .cal button.we{background:var(--weekend)}
 .cal button.shut{opacity:.45;text-decoration:line-through;cursor:not-allowed}
+.dl{padding:10px 14px;border-radius:10px;font-size:14px;background:var(--wasabi-soft);border:1px solid var(--wasabi)}
+.dl.late{background:var(--block-soft);border-color:var(--block);color:var(--block)}
+.sheet.edit td:not(.name),.sheet.edit th:not(.name){cursor:pointer}
+.sheet.edit tbody td:not(.name):hover{outline:2px solid var(--nori);outline-offset:-2px}
+.day.flash{border-color:var(--salmon);box-shadow:0 0 0 3px var(--salmon-soft)}
 .shutbox{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px dashed var(--line);border-radius:10px}
 #shutCal button.closedOn{background:var(--ink);color:var(--bg);border-color:var(--ink);text-decoration:line-through}
 .sheet td.chg{outline:2px solid var(--salmon);outline-offset:-2px}
@@ -195,6 +200,7 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
       <p class="hint">Zielona kropka oznacza, że ktoś już wpisał preferencje na ten miesiąc.</p>
     </div>
     <div class="people" id="people"></div>
+    <div class="dl" id="dlBanner" hidden></div>
     <div id="form" hidden>
       <div class="grid2">
         <div class="f" style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:500">
@@ -248,6 +254,12 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
       </div>
     </div>
     <div class="row"><button id="pdfBtn" class="primary">Pobierz PDF (A4)</button><button id="shareBtn" hidden>Wyślij grafik</button><button id="printBtn">Drukuj</button><span class="hint" id="printHint"></span></div>
+    <div class="shutbox" id="dlBox" hidden>
+      <div><b>Termin wpisywania dyspozycji</b> <span class="hint">Po tym dniu pracownicy nie mogą już zmieniać swoich preferencji (Ty możesz zawsze).</span></div>
+      <div class="row"><input type="date" id="dlInput" style="max-width:190px"><button id="dlSave">Ustaw termin</button><button id="dlClear">Bez terminu</button></div>
+      <div class="row"><span id="missing" class="hint"></span><button id="remindBtn">Skopiuj przypomnienie</button></div>
+      <span class="status" id="dlStatus"></span>
+    </div>
     <div class="shutbox" id="shutBox" hidden>
       <div><b>Dni zamknięte</b> <span class="hint">Stuknij dzień, w który lokal jest nieczynny. Ułożony grafik dopasuje się sam, zmieniając jak najmniej.</span></div>
       <div class="cal" id="shutCal"></div>
@@ -265,8 +277,8 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
     <div class="tablewrap"><table class="sheet" id="sheet"></table></div>
     <div class="notes" id="notes"></div>
     <details id="manualBox">
-      <summary style="cursor:pointer;font-weight:600">Poprawki ręczne, dzień po dniu</summary>
-      <p class="hint" style="margin:8px 0">Dla każdego dnia: para sushi · kucharz, kierowca, kelnerka. Pokazują się tylko dozwolone pary. Po zmianach kliknij „Zapisz grafik”.</p>
+      <summary style="cursor:pointer;font-weight:600">Edytuj grafik ręcznie</summary>
+      <p class="hint" style="margin:8px 0">Możesz też stuknąć dowolną kratkę w tabeli – otworzy się edycja tego dnia. Dla każdego dnia: para sushi · kucharz, kierowca, kelnerka (pokazują się tylko dozwolone pary). Po zmianach kliknij „Zapisz grafik”.</p>
       <div class="days" id="days"></div>
     </details>
     <details id="clearBox">
@@ -339,7 +351,7 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const now=new Date();
 let cur={y:now.getFullYear(),m:now.getMonth()+1};
 if(cur.m===12){cur={y:cur.y+1,m:0}}
-let state={prefs:{},plan:null,draft:null,me:null,blocked:new Set(),want:new Set(),closed:new Set()};
+let state={prefs:{},plan:null,draft:null,me:null,blocked:new Set(),want:new Set(),closed:new Set(),deadline:null};
 const closedArr=()=>Array.from({length:nDays()},(_,i)=>state.closed.has(i+1));
 let db=null,unsubs=[];
 const mKey=()=>`${cur.y}-${String(cur.m+1).padStart(2,'0')}`;
@@ -546,6 +558,7 @@ function renderPlan(){
     }
   }
   $('sheet').innerHTML=h+'</tbody>';
+  $('sheet').classList.toggle('edit',!!(user&&user.admin));
   const open=n-state.closed.size;
   if(days&&days.some((x,i)=>!x&&!state.closed.has(i+1)))notes.unshift('Niektóre otwarte dni nie są obsadzone. Kliknij „Ułóż ponownie”.');
   chips.unshift(`<span class="chip">Dni otwarte: ${open}</span>`);
@@ -608,7 +621,7 @@ async function load(full){
     if(m!==mKey())return;
     const before=JSON.stringify(state.prefs[state.me]||null);
     state.prefs=Array.isArray(r.prefs)?{}:(r.prefs||{});state.plan=r.plan||null;
-    state.closed=new Set(r.closed||[]);(state.plan?.days||[]).forEach((x,i)=>{if(x===null)state.closed.add(i+1)});
+    state.closed=new Set(r.closed||[]);state.deadline=r.deadline||null;renderDeadline();(state.plan?.days||[]).forEach((x,i)=>{if(x===null)state.closed.add(i+1)});
     renderShut();
     renderPeople();
     if(full||JSON.stringify(state.prefs[state.me]||null)!==before)loadForm();
@@ -618,7 +631,7 @@ async function load(full){
 }
 function changeMonth(delta){
   cur.m+=delta;if(cur.m<0){cur.m=11;cur.y--}if(cur.m>11){cur.m=0;cur.y++}
-  state.prefs={};state.plan=null;state.draft=null;state.closed=new Set();
+  state.prefs={};state.plan=null;state.draft=null;state.closed=new Set();state.deadline=null;
   setMonthLabels();renderPeople();loadForm();renderPlan();load(true);
 }
 function tab(which){
@@ -643,8 +656,9 @@ function startApp(me){
   user=me;
   $('loginView').hidden=true;$('appView').hidden=false;
   $('whoName').textContent=me.admin?'Zalogowany: Szef':`Zalogowany: ${me.name}`;
-  $('adminBtns').hidden=!me.admin;$('shutBox').hidden=!me.admin;$('manualBox').hidden=!me.admin;$('clearBox').hidden=!me.admin;$('howto').hidden=!!me.admin;
+  $('adminBtns').hidden=!me.admin;$('dlBox').hidden=!me.admin;$('shutBox').hidden=!me.admin;$('manualBox').hidden=!me.admin;$('clearBox').hidden=!me.admin;$('howto').hidden=!!me.admin;
   $('howtoCal').textContent=byId[me.id]?.picksOwn?'W kalendarzu stuknij dni, w które chcesz pracować (zielone). Pracujesz tylko w zaznaczone dni.':'W kalendarzu stuknij dzień raz: chcesz pracować (zielony). Drugi raz: nie możesz (czerwony). Trzeci raz: obojętnie.';
+  renderDeadline();
   $('peopleTitle').textContent=me.admin?'Czyje preferencje edytujesz?':'Twoje preferencje';
   state.me=me.admin?(state.me&&byId[state.me]?state.me:null):me.id;
   if(!me.admin)tab('prefs');
@@ -829,6 +843,60 @@ async function toggleShut(d){
   }catch(e){state.closed=before;$('shutStatus').textContent=e.message;$('shutStatus').className='status err'}
   finally{shutBusy=false;renderShut();renderPlan();if(state.me)renderCal()}
 }
+
+// ---------- termin wpisywania + przypomnienie ----------
+const fmtD=iso=>{const [y,m,d]=iso.split('-');return `${d}.${m}`};
+const todayIso=()=>{const t=new Date();return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`};
+function renderDeadline(){
+  const dl=state.deadline,late=dl&&todayIso()>dl;
+  // pracownik
+  const b=$('dlBanner');
+  if(user&&!user.admin&&dl){
+    b.hidden=false;b.className='dl'+(late?' late':'');
+    const left=Math.round((new Date(dl+'T23:59:59')-new Date())/864e5);
+    b.textContent=late?`Termin wpisywania na ${MONTHS[cur.m]} minął (${fmtD(dl)}). Zmiany zgłoś szefowi.`
+      :`Wpisz dyspozycyjność do ${fmtD(dl)} włącznie${left>=0?` (zostało dni: ${left})`:''}.`;
+    $('savePrefs').disabled=!!late;
+  }else{b.hidden=true;if($('savePrefs'))$('savePrefs').disabled=false}
+  // szef
+  if(user&&user.admin){
+    $('dlInput').value=dl||'';
+    const miss=STAFF.filter(s=>!state.prefs[s.id]).map(s=>s.name);
+    $('missing').textContent=miss.length?`Nie wpisali jeszcze: ${miss.join(', ')}.`:'Wszyscy wpisali dyspozycyjność.';
+    $('remindBtn').hidden=!miss.length;
+  }
+}
+async function saveDeadline(v){
+  try{const r=await api('setDeadline',{month:mKey(),deadline:v});state.deadline=r.deadline;renderDeadline();
+    $('dlStatus').textContent=r.deadline?`Termin ustawiony: ${fmtD(r.deadline)}.`:'Termin usunięty.';$('dlStatus').className='status ok'}
+  catch(e){$('dlStatus').textContent=e.message;$('dlStatus').className='status err'}
+}
+$('dlSave').onclick=()=>{if($('dlInput').value)saveDeadline($('dlInput').value)};
+$('dlClear').onclick=()=>saveDeadline(null);
+$('remindBtn').onclick=async()=>{
+  const miss=STAFF.filter(s=>!state.prefs[s.id]).map(s=>s.name);
+  const txt=`Przypomnienie: wpisz swoją dyspozycyjność na ${MONTHS[cur.m]}`+(state.deadline?` do ${fmtD(state.deadline)}`:'')+
+    ` na https://zmiano.pl/nadarzyn (imię + PIN). Brakuje jeszcze: ${miss.join(', ')}.`;
+  try{await navigator.clipboard.writeText(txt);$('dlStatus').textContent='Skopiowane. Wklej na grupę na WhatsAppie.';$('dlStatus').className='status ok'}
+  catch(e){$('dlStatus').textContent=txt;$('dlStatus').className='status'}
+};
+// ---------- stuknięcie w kratkę = edycja tego dnia ----------
+$('sheet').addEventListener('click',ev=>{
+  if(!user||!user.admin)return;
+  const cell=ev.target.closest('td,th');if(!cell||cell.classList.contains('name'))return;
+  const row=cell.parentElement,idx=[...row.children].indexOf(cell);
+  const n=nDays();
+  // kolumna 0 = imię, 1..n = dni
+  if(row.classList.contains('grow'))return;
+  const d=idx;if(d<1||d>n)return;
+  if(state.closed.has(d)){$('shutStatus').textContent=`${d}. to dzień zamknięty. Otwórz go w „Dni zamknięte”, żeby go obsadzić.`;$('shutStatus').className='status';return}
+  if(!currentDays()){$('planInfo').textContent='Najpierw kliknij „Ułóż grafik”.';return}
+  const box=$('manualBox');box.open=true;
+  const el=$('dk-'+d)?.closest('.day');if(!el)return;
+  document.querySelectorAll('.day.flash').forEach(x=>x.classList.remove('flash'));
+  el.classList.add('flash');el.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>$('dk-'+d).focus({preventScroll:true}),350);
+});
 setMonthLabels();
 api('me').then(r=>r.me?startApp(r.me):showLogin()).catch(()=>showLogin());
 </script>

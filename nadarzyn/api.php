@@ -12,6 +12,7 @@ session_set_cookie_params([
 ]);
 ini_set('session.gc_maxlifetime', (string)(60 * 60 * 24 * 60));
 session_name('zmiano_sess');
+date_default_timezone_set('Europe/Warsaw');
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -41,9 +42,9 @@ function numOrNull($v): ?int { if ($v === null || $v === '') return null; return
 
 function load(string $m): array {
   $f = DATA_DIR . "/$m.php";
-  if (!is_file($f)) return ['prefs' => new stdClass(), 'plan' => null, 'closed' => []];
+  if (!is_file($f)) return ['prefs' => new stdClass(), 'plan' => null, 'closed' => [], 'deadline' => null];
   $d = json_decode(substr((string)file_get_contents($f), strlen(GUARD)), true) ?: [];
-  return ['prefs' => $d['prefs'] ?? new stdClass(), 'plan' => $d['plan'] ?? null, 'closed' => $d['closed'] ?? []];
+  return ['prefs' => $d['prefs'] ?? new stdClass(), 'plan' => $d['plan'] ?? null, 'closed' => $d['closed'] ?? [], 'deadline' => $d['deadline'] ?? null];
 }
 // zapis pod blokadą pliku, żeby dwie osoby naraz nie nadpisały sobie danych
 function update(string $m, callable $fn): array {
@@ -117,6 +118,8 @@ switch ($action) {
     $person = (string)($in['person'] ?? '');
     if (!isset($USERS[$person])) fail('Nie ma takiej osoby.');
     if (!$m['admin'] && $m['id'] !== $person) fail('Możesz zmieniać tylko swoje preferencje.', 403);
+    $dl = load($month)['deadline'];
+    if (!$m['admin'] && $dl && date('Y-m-d') > $dl) fail('Termin wpisywania minął (' . date('d.m', strtotime($dl)) . '). Zmiany zgłoś szefowi.', 403);
     $n = daysIn($month);
     $mn = numOrNull($in['daysMin'] ?? null); $mx = numOrNull($in['daysMax'] ?? null);
     if ($mn !== null && $mx !== null && $mn > $mx) [$mn, $mx] = [$mx, $mn];
@@ -143,6 +146,14 @@ switch ($action) {
     $plan = ['month' => $month, 'days' => $clean, 'savedAt' => (int)round(microtime(true) * 1000)];
     update($month, function ($d) use ($plan) { $d['plan'] = $plan; return $d; });
     out(['ok' => true, 'plan' => $plan]);
+
+  case 'setDeadline':
+    needAdmin(); $month = monthOk($in['month'] ?? '');
+    $dl = $in['deadline'] ?? null;
+    if ($dl !== null && $dl !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$dl)) fail('Zła data.');
+    $dl = $dl ?: null;
+    update($month, function ($d) use ($dl) { $d['deadline'] = $dl; return $d; });
+    out(['ok' => true, 'deadline' => $dl]);
 
   case 'setClosed':
     needAdmin(); $month = monthOk($in['month'] ?? '');
