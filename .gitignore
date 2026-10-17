@@ -1,0 +1,5 @@
+# PIN-y i dane lokali zostają tylko na serwerze
+*/config.php
+*/data/*
+!*/data/.htaccess
+.DS_Store

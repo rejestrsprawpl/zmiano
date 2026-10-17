@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Grafik Nadarzyn · Zmiano</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: narzędzie mobilne, dwie zakładki (Preferencje / Grafik), tabela jak papierowa kartka */
+:root{
+  --bg:#f6f4ef; --surface:#ffffff; --ink:#1d2621; --muted:#66706a; --line:#dcd9d0;
+  --nori:#24382d; --salmon:#e2674a; --salmon-soft:#fbe3dc; --wasabi:#6f8f3a; --wasabi-soft:#e7eedb;
+  --block:#c23b2b; --block-soft:#f6d9d4; --weekend:#efece4;
+  --f-display:"Familjen Grotesk",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a17; --surface:#1d2420; --ink:#e9ece7; --muted:#9aa49d; --line:#33403a;
+  --nori:#cfe0c9; --salmon:#f08a6f; --salmon-soft:#3d2620; --wasabi:#a5c46b; --wasabi-soft:#26301b;
+  --block:#ef7a68; --block-soft:#3e1f1a; --weekend:#19201c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a17; --surface:#1d2420; --ink:#e9ece7; --muted:#9aa49d; --line:#33403a;
+  --nori:#cfe0c9; --salmon:#f08a6f; --salmon-soft:#3d2620; --wasabi:#a5c46b; --wasabi-soft:#26301b;
+  --block:#ef7a68; --block-soft:#3e1f1a; --weekend:#19201c; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-size:28px;margin:0;letter-spacing:-.01em;color:var(--nori)}
+h2{font-family:var(--f-display);font-size:19px;margin:0}
+.sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+select,input,button{font:inherit;color:var(--ink)}
+select,input[type=number],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{font:inherit;color:var(--ink);resize:vertical;min-height:60px}
+button{cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:9px 14px;font-weight:500}
+button.primary{background:var(--nori);color:var(--bg);border-color:var(--nori)}
+button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--salmon);outline-offset:2px}
+.monthsel{display:flex;align-items:center;gap:8px}
+.monthsel span{font-family:var(--f-display);font-weight:700;font-size:17px;min-width:140px;text-align:center}
+.monthsel button{padding:6px 12px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:10px 14px;color:var(--muted)}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--salmon)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:16px}
+.people{display:flex;flex-wrap:wrap;gap:8px}
+#people{display:flex;flex-direction:column;gap:12px}
+.glabel{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:6px}
+.sheet tr.grow td{background:var(--bg);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;font-family:var(--f-body);padding:4px 8px}
+.sheet td.X{background:var(--weekend);color:var(--nori);font-weight:700}
+.day .sels{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.cal button:disabled{opacity:1;cursor:not-allowed}
+.person{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 12px;min-width:110px}
+.person small{color:var(--muted);font-size:11px}
+.person[aria-pressed=true]{border-color:var(--nori);box-shadow:inset 0 0 0 1px var(--nori)}
+.person .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--wasabi);margin-right:4px}
+.person .dot.no{background:var(--line)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:500}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px}
+.cal .h{font-size:11px;text-align:center;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.cal button{padding:8px 0;font-family:var(--f-mono);font-size:13px;border-radius:6px}
+.cal button.we{background:var(--weekend)}
+.cal button.want{background:var(--wasabi-soft);border-color:var(--wasabi);color:var(--wasabi);font-weight:700}
+.sheet td.miss{color:var(--wasabi)}
+.cal button.off{background:var(--block-soft);border-color:var(--block);color:var(--block);text-decoration:line-through}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.status{font-size:13px;color:var(--muted)}
+.status.ok{color:var(--wasabi)} .status.err{color:var(--block)}
+.summary{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--line)}
+.chip.warn{background:var(--block-soft);border-color:var(--block);color:var(--block)}
+.chip.good{background:var(--wasabi-soft);border-color:var(--wasabi);color:var(--wasabi)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;min-width:100%}
+.sheet th,.sheet td{border:1px solid var(--line);text-align:center;padding:5px 3px;min-width:24px}
+.sheet th.name,.sheet td.name{text-align:left;padding:5px 8px;font-family:var(--f-body);font-weight:600;position:sticky;left:0;background:var(--surface);z-index:1;min-width:84px}
+.sheet thead th{font-weight:500;color:var(--muted);font-size:11px}
+.sheet thead th b{display:block;color:var(--ink);font-size:12px}
+.sheet .we{background:var(--weekend)}
+.sheet td.S{background:var(--salmon-soft);color:var(--salmon);font-weight:700}
+.sheet td.K{background:var(--wasabi-soft);color:var(--wasabi);font-weight:700}
+.sheet td.bl{color:var(--block)}
+.sheet td.bad{outline:2px solid var(--block);outline-offset:-2px}
+.sheet td.closed{background:repeating-linear-gradient(45deg,var(--weekend),var(--weekend) 3px,var(--surface) 3px,var(--surface) 6px)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
+.legend b{font-family:var(--f-mono);padding:1px 6px;border-radius:4px}
+.lS{background:var(--salmon-soft);color:var(--salmon)} .lK{background:var(--wasabi-soft);color:var(--wasabi)}
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.day{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.day.we{background:var(--weekend)}
+.day.bad{border-color:var(--block)}
+.day .d{font-family:var(--f-mono);font-size:12px;width:52px;flex:none}
+.day select{padding:5px 6px;font-size:13px}
+.rules{font-size:13px;color:var(--muted);margin:0;padding-left:18px}
+.notes{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.notes div{padding:6px 10px;border-left:3px solid var(--line);background:var(--bg)}
+.login{max-width:380px;margin:40px auto;display:flex;flex-direction:column;gap:14px}
+.login .people button{min-width:0}
+.pinrow{display:flex;gap:8px}
+.pinrow input{font-family:var(--f-mono);font-size:22px;letter-spacing:.3em;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%}
+.whoami{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.whoami button{padding:5px 10px;font-size:13px}
+.person:disabled{opacity:.45;cursor:default}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <section id="loginView" class="panel login" hidden>
+    <div>
+      <h1>Grafik Nadarzyn</h1>
+      <p class="sub">Wybierz swoje imię i wpisz PIN</p>
+    </div>
+    <div class="people" id="loginPeople"></div>
+    <form id="loginForm" class="pinrow" hidden>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="PIN" aria-label="PIN">
+      <button class="primary" type="submit">Wejdź</button>
+    </form>
+    <span class="status err" id="loginErr"></span>
+  </section>
+  <div id="appView" hidden style="display:contents">
+  <header>
+    <div>
+      <h1>Grafik Nadarzyn</h1>
+      <p class="sub">Sushi · kuchnia · dowóz · sala. Każdy wpisuje preferencje, aplikacja układa grafik.</p>
+    </div>
+    <div class="monthsel">
+      <button id="prevM" aria-label="Poprzedni miesiąc">‹</button>
+      <span id="mLabel"></span>
+      <button id="nextM" aria-label="Następny miesiąc">›</button>
+    </div>
+    <div class="whoami"><span id="whoName"></span><button id="logout">Wyloguj</button></div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tPrefs" aria-selected="true">Moje preferencje</button>
+    <button role="tab" id="tPlan" aria-selected="false">Grafik</button>
+  </div>
+
+  <section id="pPrefs" class="panel">
+    <div>
+      <h2 id="peopleTitle">Kim jesteś?</h2>
+      <p class="hint">Zielona kropka oznacza, że ktoś już wpisał preferencje na ten miesiąc.</p>
+    </div>
+    <div class="people" id="people"></div>
+    <div id="form" hidden>
+      <div class="grid2">
+        <div class="f" style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:500">
+          <span>Ile dni chcę przepracować w miesiącu</span>
+          <div class="row" style="flex-wrap:nowrap">
+            <input type="number" id="fMin" min="0" max="31" placeholder="od" aria-label="Minimum dni">
+            <span>–</span>
+            <input type="number" id="fMax" min="0" max="31" placeholder="do" aria-label="Maksimum dni">
+          </div>
+          <span id="fDef" style="font-weight:400"></span>
+        </div>
+        <label class="f">Rytm pracy
+          <select id="fRhythm">
+            <option value="">Obojętnie</option>
+            <option value="1+1">1+1 (dzień pracy, dzień wolny)</option>
+            <option value="2+1">2+1</option>
+            <option value="2+2">2+2</option>
+            <option value="3+1">3+1</option>
+            <option value="3+2">3+2</option>
+            <option value="3+3">3+3</option>
+            <option value="4+1">4+1</option>
+            <option value="4+2">4+2</option>
+            <option value="4+3">4+3</option>
+          </select>
+        </label>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+        <h2 id="calTitle">Moje dni</h2>
+        <p class="hint" id="calHint"></p>
+        <div class="cal" id="cal"></div>
+      </div>
+      <label class="f" style="margin-top:16px">Uwagi (opcjonalnie)
+        <textarea id="fNote" placeholder="np. wolę weekendy, 14-go mogę tylko do 18"></textarea>
+      </label>
+      <div class="row" style="margin-top:16px">
+        <button class="primary" id="savePrefs">Zapisz moje preferencje</button>
+        <span class="status" id="prefStatus"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="pPlan" class="panel" hidden>
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h2>Grafik na <span id="mLabel2"></span></h2>
+        <p class="hint" id="planInfo"></p>
+      </div>
+      <div class="row" id="adminBtns">
+        <button id="genBtn" class="primary">Ułóż grafik</button>
+        <button id="savePlan" disabled>Zapisz grafik</button>
+      </div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="legend">
+      <span><b class="lS">S</b> sushi</span>
+      <span><b class="lK">K</b> kucharz</span>
+      <span><b style="background:var(--weekend)">X</b> kierowca / kelnerka</span>
+      <span><b style="color:var(--block)">✕</b> nie może tego dnia</span>
+      <span><b style="color:var(--wasabi)">○</b> chciał pracować, nie dostał</span>
+      <span>szare tło = weekend</span>
+    </div>
+    <div class="tablewrap"><table class="sheet" id="sheet"></table></div>
+    <div class="notes" id="notes"></div>
+    <details id="manualBox">
+      <summary style="cursor:pointer;font-weight:600">Poprawki ręczne, dzień po dniu</summary>
+      <p class="hint" style="margin:8px 0">Dla każdego dnia: para sushi · kucharz, kierowca, kelnerka. Pokazują się tylko dozwolone pary. Po zmianach kliknij „Zapisz grafik”.</p>
+      <div class="days" id="days"></div>
+    </details>
+    <details>
+      <summary style="cursor:pointer;font-weight:600">Zasady</summary>
+      <ul class="rules">
+        <li>Na każdej zmianie: sushi master, kucharz, kierowca i kelnerka.</li>
+        <li>Omakasa i Wojtek robią tylko sushi, Marcin tylko kuchnię, Janusz i Bartek jedno i drugie.</li>
+        <li>Wojtek + Bartek: Wojtek na sushi, Bartek na kuchni.</li>
+        <li>Bartek + Janusz: Bartek na sushi, Janusz na kuchni.</li>
+        <li>Nikt nie pracuje więcej niż 4 dni z rzędu.</li>
+        <li>Omakasa pracuje 2–3 dni, tylko w dni, które sam wybierze.</li>
+        <li>Wojtek 6–8 dni, Bartek 24 dni, Mariusz 6–7 dni (chyba że sami wpiszą inaczej).</li>
+        <li>Piotrek nie pracuje w soboty.</li>
+        <li>Dni zablokowane przez pracownika nie są obsadzane tą osobą.</li>
+      </ul>
+    </details>
+  </section>
+  </div>
+</div>
+
+<script>
+// def = ustalenia szefa, obowiązują dopóki pracownik nie wpisze swoich liczb; noWd = dni tygodnia wykluczone (0=nd, 6=sb)
+const STAFF=[
+  {id:'omakasa',name:'Omakasa',group:'kuchnia',sushi:true,kitchen:false,role:'sushi, sam wybiera dni',def:{min:2,max:3},picksOwn:true},
+  {id:'wojtek',name:'Wojtek',group:'kuchnia',sushi:true,kitchen:false,role:'sushi',def:{min:6,max:8}},
+  {id:'marcin',name:'Marcin',group:'kuchnia',sushi:false,kitchen:true,role:'kucharz',def:{}},
+  {id:'janusz',name:'Janusz',group:'kuchnia',sushi:true,kitchen:true,role:'sushi + kucharz',def:{}},
+  {id:'bartek',name:'Bartek',group:'kuchnia',sushi:true,kitchen:true,role:'sushi + kucharz',def:{min:24,max:24}},
+  {id:'piotrek',name:'Piotrek',group:'kierowcy',role:'kierowca, bez sobót',def:{},noWd:[6]},
+  {id:'mariusz',name:'Mariusz',group:'kierowcy',role:'kierowca',def:{min:6,max:7}},
+  {id:'zuzia',name:'Zuzia',group:'kelnerki',role:'kelnerka',def:{}},
+  {id:'marysia',name:'Marysia',group:'kelnerki',role:'kelnerka',def:{}}
+];
+const GROUPS=[{id:'kuchnia',name:'Kuchnia',perDay:2},{id:'kierowcy',name:'Kierowcy',perDay:1},{id:'kelnerki',name:'Kelnerki',perDay:1}];
+const MAX_RUN=4;
+const byId=Object.fromEntries(STAFF.map(s=>[s.id,s]));
+const DRIVERS=STAFF.filter(s=>s.group==='kierowcy').map(s=>s.id);
+const WAITERS=STAFF.filter(s=>s.group==='kelnerki').map(s=>s.id);
+// dozwolone pary [sushi, kucharz]; Bartek/Janusz → Janusz kucharzem; Wojtek/Bartek → Bartek kucharzem (Wojtek robi tylko sushi)
+const PAIRS=[];
+for(const s of STAFF)for(const k of STAFF){
+  if(s.id===k.id||!s.sushi||!k.kitchen)continue;
+  if(s.id==='janusz'&&k.id==='bartek')continue;
+  PAIRS.push([s.id,k.id]);
+}
+function eff(pid){
+  const s=byId[pid],p=state.prefs[pid]||{};
+  const has=p.daysMin!=null||p.daysMax!=null;
+  return{min:has?(p.daysMin??p.daysMax):s.def.min??null,max:has?(p.daysMax??p.daysMin):s.def.max??null,
+    rhythm:p.rhythm||null,blocked:p.blocked||[],want:p.want||[],picksOwn:!!s.picksOwn,noWd:s.noWd||[]};
+}
+const rangeTxt=e=>e.min==null?'–':(e.min===e.max?String(e.min):`${e.min}–${e.max}`);
+const MONTHS=['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+const WD=['nd','pn','wt','śr','cz','pt','sb'];
+const $=id=>document.getElementById(id);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const now=new Date();
+let cur={y:now.getFullYear(),m:now.getMonth()+1};
+if(cur.m===12){cur={y:cur.y+1,m:0}}
+let state={prefs:{},plan:null,draft:null,me:null,blocked:new Set(),want:new Set()};
+let db=null,unsubs=[];
+const mKey=()=>`${cur.y}-${String(cur.m+1).padStart(2,'0')}`;
+const nDays=()=>new Date(cur.y,cur.m+1,0).getDate();
+const wday=d=>new Date(cur.y,cur.m,d).getDay();
+const isWe=d=>{const w=wday(d);return w===0||w===6};
+const slotOf=(x,pid)=>!x?null:x.s===pid?'S':x.k===pid?'K':(x.d===pid||x.w===pid)?'X':null;
+
+function setMonthLabels(){const t=`${MONTHS[cur.m]} ${cur.y}`;$('mLabel').textContent=t;$('mLabel2').textContent=t}
+
+/* ---------- Preferencje ---------- */
+function renderPeople(){
+  const box=$('people');box.innerHTML='';
+  for(const g of GROUPS){
+    const wrap=document.createElement('div');wrap.className='pgroup';
+    wrap.innerHTML=`<div class="glabel">${g.name}</div>`;
+    const row=document.createElement('div');row.className='people';
+    for(const s of STAFF.filter(x=>x.group===g.id)){
+      const b=document.createElement('button');b.className='person';b.id='p-'+s.id;
+      b.setAttribute('aria-pressed',state.me===s.id);
+      b.innerHTML=`<span><span class="dot ${state.prefs[s.id]?'':'no'}"></span>${s.name}</span><small>${s.role}</small>`;
+      b.onclick=()=>{state.me=s.id;loadForm();renderPeople()};
+      row.appendChild(b);
+    }
+    wrap.appendChild(row);box.appendChild(wrap);
+  }
+}
+function loadForm(){
+  if(!state.me){$('form').hidden=true;return}
+  $('form').hidden=false;
+  const p=state.prefs[state.me]||{};const s=byId[state.me];
+  $('fMin').value=p.daysMin??'';$('fMax').value=p.daysMax??'';
+  const fixed=[];
+  if(s.def.min!=null)fixed.push(`${rangeTxt({min:s.def.min,max:s.def.max})} dni`);
+  if(s.noWd)fixed.push('bez '+s.noWd.map(w=>['niedziel','poniedziałków','wtorków','śród','czwartków','piątków','sobót'][w]).join(', '));
+  $('fDef').textContent=fixed.length?`Ustalone z szefem: ${fixed.join(', ')}. Puste pola = te ustalenia.`:'Puste = bez limitu, grafik rozłoży dni równo w grupie';
+  $('fRhythm').value=p.rhythm||'';$('fNote').value=p.note||'';
+  state.blocked=new Set(p.blocked||[]);state.want=new Set(p.want||[]);
+  if(s.picksOwn){$('calTitle').textContent='Dni, w które chcę pracować';$('calHint').textContent='Wybierz swoje dni. Pracujesz tylko w zaznaczone dni.'}
+  else{$('calTitle').textContent='Moje dni';$('calHint').textContent='Stuknij raz: chcę pracować (zielony). Drugi raz: nie mogę (czerwony). Trzeci raz: obojętnie.'}
+  $('prefStatus').textContent=p.updatedAt?'Ostatnio zapisane: '+new Date(p.updatedAt).toLocaleString('pl-PL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+  $('prefStatus').className='status';
+  renderCal();
+}
+function renderCal(){
+  const c=$('cal');c.innerHTML='';const s=byId[state.me];
+  ['pn','wt','śr','cz','pt','sb','nd'].forEach(h=>{const e=document.createElement('div');e.className='h';e.textContent=h;c.appendChild(e)});
+  const first=(wday(1)+6)%7;
+  for(let i=0;i<first;i++)c.appendChild(document.createElement('div'));
+  for(let d=1;d<=nDays();d++){
+    const b=document.createElement('button');b.id='cal-'+d;b.textContent=d;
+    const fixedOff=(s.noWd||[]).includes(wday(d));
+    const st=fixedOff?'off':state.want.has(d)?'want':state.blocked.has(d)?'off':'';
+    b.className=(isWe(d)?'we ':'')+st;
+    b.setAttribute('aria-label',`${d}: ${st==='want'?'chcę pracować':st==='off'?'nie mogę':'obojętnie'}`);
+    if(fixedOff){b.disabled=true}
+    else b.onclick=()=>{
+      if(state.want.has(d)){state.want.delete(d);if(!s.picksOwn)state.blocked.add(d)}
+      else if(state.blocked.has(d))state.blocked.delete(d);
+      else state.want.add(d);
+      renderCal();
+    };
+    c.appendChild(b);
+  }
+}
+async function api(action,body,query=''){
+  const r=await fetch(`api.php?action=${action}${query}`,{method:body?'POST':'GET',credentials:'same-origin',
+    headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401&&action!=='login'){showLogin();throw new Error(j.error||'Zaloguj się ponownie.')}
+  if(!r.ok)throw new Error(j.error||'Błąd serwera');
+  return j;
+}
+async function savePrefs(){
+  if(!state.me)return;
+  const num=v=>{v=v.trim();return v===''?null:Math.max(0,Math.min(31,parseInt(v,10)||0))};
+  let mn=num($('fMin').value),mx=num($('fMax').value);
+  if(mn!=null&&mx!=null&&mn>mx)[mn,mx]=[mx,mn];
+  const body={month:mKey(),person:state.me,daysMin:mn,daysMax:mx,rhythm:$('fRhythm').value||null,
+    blocked:[...state.blocked].sort((a,b)=>a-b),want:[...state.want].sort((a,b)=>a-b),note:$('fNote').value.trim()};
+  $('savePrefs').disabled=true;$('prefStatus').textContent='Zapisuję…';$('prefStatus').className='status';
+  try{const r=await api('savePrefs',body);state.prefs[state.me]=r.pref;renderPeople();renderPlan();$('prefStatus').textContent='Zapisane';$('prefStatus').className='status ok'}
+  catch(e){$('prefStatus').textContent=e.message;$('prefStatus').className='status err'}
+  finally{$('savePrefs').disabled=false}
+}
+
+/* ---------- Układanie grafiku ---------- */
+function parseRhythm(r){if(!r)return null;const [a,b]=r.split('+').map(Number);return{a,b}}
+function scorePerson(assign,pid,n,closed,fair,e){
+  const bl=e.off||new Set(e.blocked),wa=e.wantSet||new Set(e.want);const rh=e.rh!==undefined?e.rh:parseRhythm(e.rhythm);
+  const w=new Array(n);let c=0,cnt=0;
+  for(let i=0;i<n;i++){
+    const x=assign[i];w[i]=!!x&&(x.s===pid||x.k===pid||x.d===pid||x.w===pid);
+    if(w[i]){cnt++;if(bl.has(i+1)||(!e.off&&e.noWd.includes(wday(i+1))))c+=1000;if(e.picksOwn&&!wa.has(i+1))c+=1000}
+    else if(wa.has(i+1)&&!closed[i])c+=e.picksOwn?400:15;
+  }
+  if(e.min!=null){if(cnt<e.min)c+=40*(e.min-cnt);if(cnt>e.max)c+=40*(cnt-e.max)}
+  else if(fair!=null)c+=4*Math.abs(cnt-fair);
+  let i=0;
+  while(i<n){
+    let j=i;while(j<n&&w[j]===w[i])j++;
+    const len=j-i,edge=(i===0||j===n);
+    if(w[i]){
+      if(len>MAX_RUN)c+=2000*(len-MAX_RUN);
+      if(rh){if(len>rh.a)c+=8*(len-rh.a);else if(len<rh.a&&!edge)c+=3*(rh.a-len)}
+    }else if(rh&&!edge){
+      let off=0;for(let k=i;k<j;k++)if(!closed[k])off++;
+      if(off<rh.b)c+=6*(rh.b-off);else if(off>rh.b)c+=off-rh.b;
+    }
+    i=j;
+  }
+  return c;
+}
+function fairShares(closed){
+  const open=closed.filter(x=>!x).length,res={};
+  for(const g of GROUPS){
+    let left=open*g.perDay,free=0;
+    for(const s of STAFF.filter(x=>x.group===g.id)){const e=eff(s.id);if(e.min!=null)left-=(e.min+e.max)/2;else free++}
+    res[g.id]=free?Math.max(0,left/free):null;
+  }
+  return res;
+}
+function solve(closed){
+  const n=nDays(),fair=fairShares(closed);
+  const E=Object.fromEntries(STAFF.map(s=>[s.id,eff(s.id)]));
+  for(const id in E){const e=E[id];e.off=new Set(e.blocked);for(let d=1;d<=n;d++)if(e.noWd.includes(wday(d)))e.off.add(d);e.wantSet=new Set(e.want);e.rh=parseRhythm(e.rhythm)}
+  const can=(pid,d)=>!E[pid].blocked.includes(d)&&!E[pid].noWd.includes(wday(d))&&!(E[pid].picksOwn&&!E[pid].want.includes(d));
+  const opts=[];
+  for(let d=1;d<=n;d++){
+    if(closed[d-1]){opts.push(null);continue}
+    let kp=PAIRS.filter(([s,k])=>can(s,d)&&can(k,d));
+    const own=STAFF.filter(s=>s.picksOwn&&E[s.id].want.includes(d)).map(s=>s.id);
+    if(own.length){const f=kp.filter(p=>own.some(o=>p.includes(o)));if(f.length)kp=f}
+    const dr=DRIVERS.filter(p=>can(p,d)),wt=WAITERS.filter(p=>can(p,d));
+    opts.push({k:kp.length?kp:PAIRS,d:dr.length?dr:DRIVERS,w:wt.length?wt:WAITERS});
+  }
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const ids=STAFF.map(s=>s.id);
+  let best=null,bestC=Infinity;
+  for(let r=0;r<5;r++){
+    const A=opts.map(o=>{if(!o)return null;const p=pick(o.k);return{s:p[0],k:p[1],d:pick(o.d),w:pick(o.w)}});
+    const pc={};let c=0;
+    for(const id of ids){pc[id]=scorePerson(A,id,n,closed,fair[byId[id].group],E[id]);c+=pc[id]}
+    let T=60;
+    for(let it=0;it<30000;it++){
+      const d=Math.floor(Math.random()*n),o=opts[d];if(!o)continue;
+      const old=A[d],nx={...old},slot=Math.floor(Math.random()*3);
+      if(slot===0){if(o.k.length<2)continue;const p=pick(o.k);nx.s=p[0];nx.k=p[1]}
+      else if(slot===1){if(o.d.length<2)continue;nx.d=pick(o.d)}
+      else{if(o.w.length<2)continue;nx.w=pick(o.w)}
+      const aff=new Set([old.s,old.k,old.d,old.w,nx.s,nx.k,nx.d,nx.w]);
+      A[d]=nx;let delta=0;const np={};
+      for(const id of aff){np[id]=scorePerson(A,id,n,closed,fair[byId[id].group],E[id]);delta+=np[id]-pc[id]}
+      if(delta<=0||Math.random()<Math.exp(-delta/T)){c+=delta;Object.assign(pc,np)}else A[d]=old;
+      T=Math.max(0.05,T*0.9996);
+    }
+    if(c<bestC){bestC=c;best=A.map(x=>x&&{...x})}
+  }
+  return best;
+}
+
+/* ---------- Widok grafiku ---------- */
+function currentDays(){return state.draft||state.plan?.days||null}
+function renderPlan(){
+  const n=nDays(),days=currentDays();
+  const filled=STAFF.filter(s=>state.prefs[s.id]).length;
+  if(user&&!user.admin&&!state.plan){$('planInfo').textContent='Szef jeszcze nie zapisał grafiku na ten miesiąc.'}
+  else $('planInfo').textContent=`Preferencje wpisało ${filled} z ${STAFF.length} osób.`+(state.plan&&!state.draft?' Pokazany jest zapisany grafik.':'')+(state.draft?' Masz niezapisane zmiany.':'');
+  $('savePlan').disabled=!state.draft;
+  let h='<thead><tr><th class="name">Imię</th>';
+  for(let d=1;d<=n;d++)h+=`<th class="${isWe(d)?'we':''}"><b>${d}</b>${WD[wday(d)]}</th>`;
+  h+='<th>Suma</th><th>Ma mieć</th></tr></thead><tbody>';
+  const notes=[],chips=[];
+  for(const g of GROUPS){
+    h+=`<tr class="grow"><td class="name">${g.name}</td><td colspan="${n+2}"></td></tr>`;
+    for(const s of STAFF.filter(x=>x.group===g.id)){
+      const e=eff(s.id),bl=new Set(e.blocked),wa=new Set(e.want);
+      let row=`<tr><td class="name">${s.name}</td>`,cnt=0,run=0,maxRun=0;
+      for(let d=1;d<=n;d++){
+        const x=days?.[d-1];let cls=isWe(d)?'we':'',txt='';
+        const off=bl.has(d)||e.noWd.includes(wday(d));
+        if(days&&x===null){cls='closed';run=0}
+        else{
+          const sl=slotOf(x,s.id);
+          if(sl){cls=sl;txt=sl;cnt++;run++;maxRun=Math.max(maxRun,run);if(off){cls+=' bad';notes.push(`${s.name} pracuje ${d}. mimo że nie może`)}}
+          else{run=0;if(off){cls+=' bl';txt='✕'}else if(wa.has(d)){cls+=' miss';txt='○'}}
+        }
+        row+=`<td class="${cls}">${txt}</td>`;
+      }
+      row+=`<td><b>${days?cnt:'–'}</b></td><td>${rangeTxt(e)}</td></tr>`;h+=row;
+      if(days){
+        if(maxRun>MAX_RUN)notes.push(`${s.name} ma ${maxRun} dni pracy z rzędu (limit ${MAX_RUN})`);
+        if(e.picksOwn)e.want.forEach(d=>{if(days[d-1]&&!slotOf(days[d-1],s.id))notes.push(`${s.name} wybrał ${d}., ale nie ma go w grafiku`)});
+        if(e.min!=null&&(cnt<e.min||cnt>e.max))chips.push(`<span class="chip warn">${s.name}: ${cnt} zamiast ${rangeTxt(e)}</span>`);
+        else chips.push(`<span class="chip ${e.min!=null?'good':''}">${s.name}: ${cnt}</span>`);
+      }
+    }
+  }
+  $('sheet').innerHTML=h+'</tbody>';
+  const open=days?days.filter(x=>x!==null).length:n;
+  chips.unshift(`<span class="chip">Dni otwarte: ${open}</span>`);
+  $('summary').innerHTML=chips.join('');
+  $('notes').innerHTML=notes.map(x=>`<div>${esc(x)}</div>`).join('');
+  renderDays();
+}
+function renderDays(){
+  const box=$('days');box.innerHTML='';const days=currentDays();const n=nDays();
+  const opt=(list,v,lab)=>list.map(x=>`<option value="${x}">${lab(x)}</option>`).join('');
+  for(let d=1;d<=n;d++){
+    const x=days?.[d-1];
+    const el=document.createElement('div');el.className='day'+(isWe(d)?' we':'');
+    el.innerHTML=`<span class="d">${d} ${WD[wday(d)]}</span>`;
+    const mk=(id,label,html,val)=>{const s=document.createElement('select');s.id=id;s.setAttribute('aria-label',label);s.innerHTML=html;s.value=val;return s};
+    const kSel=mk('dk-'+d,`Kuchnia ${d}`,(days?'':'<option value="?">nie ustalono</option>')+'<option value="">— zamknięte —</option>'+opt(PAIRS.map(p=>p.join('|')),0,v=>v.split('|').map(i=>byId[i].name).join(' · ')),x?`${x.s}|${x.k}`:(days?'':'?'));
+    const dSel=mk('dd-'+d,`Kierowca ${d}`,opt(DRIVERS,0,i=>'🚗 '+byId[i].name),x?.d||DRIVERS[0]);
+    const wSel=mk('dw-'+d,`Kelnerka ${d}`,opt(WAITERS,0,i=>byId[i].name),x?.w||WAITERS[0]);
+    const closedDay=!x;dSel.disabled=closedDay;wSel.disabled=closedDay;
+    const change=()=>{
+      const base=(currentDays()||new Array(n).fill(null)).slice();
+      if(kSel.value===''||kSel.value==='?')base[d-1]=null;
+      else{const [s,k]=kSel.value.split('|');base[d-1]={s,k,d:dSel.value,w:wSel.value}}
+      state.draft=base;renderPlan();
+    };
+    kSel.onchange=dSel.onchange=wSel.onchange=change;
+    const sels=document.createElement('div');sels.className='sels';sels.append(kSel,dSel,wSel);
+    el.appendChild(sels);box.appendChild(el);
+  }
+}
+function generate(){
+  const n=nDays(),days=currentDays();
+  const closed=new Array(n).fill(false);
+  if(days)days.forEach((x,i)=>{if(x===null)closed[i]=true});
+  $('genBtn').disabled=true;$('genBtn').textContent='Układam…';
+  setTimeout(()=>{state.draft=solve(closed);$('genBtn').disabled=false;$('genBtn').textContent='Ułóż ponownie';renderPlan()},30);
+}
+async function savePlan(){
+  if(!state.draft)return;
+  $('savePlan').disabled=true;$('savePlan').textContent='Zapisuję…';
+  try{const r=await api('savePlan',{month:mKey(),days:state.draft});state.plan=r.plan;state.draft=null}
+  catch(e){$('planInfo').textContent=e.message}
+  finally{$('savePlan').textContent='Zapisz grafik';renderPlan()}
+}
+
+/* ---------- Dane i logowanie ---------- */
+let user=null,loginWho=null,pollT=null;
+async function load(full){
+  const m=mKey();
+  try{
+    const r=await api('state',null,`&month=${m}`);
+    if(m!==mKey())return;
+    const before=JSON.stringify(state.prefs[state.me]||null);
+    state.prefs=Array.isArray(r.prefs)?{}:(r.prefs||{});state.plan=r.plan||null;
+    renderPeople();
+    if(full||JSON.stringify(state.prefs[state.me]||null)!==before)loadForm();
+    renderPlan();
+    $('genBtn').textContent=state.plan?'Ułóż ponownie':'Ułóż grafik';
+  }catch(e){}
+}
+function changeMonth(delta){
+  cur.m+=delta;if(cur.m<0){cur.m=11;cur.y--}if(cur.m>11){cur.m=0;cur.y++}
+  state.prefs={};state.plan=null;state.draft=null;
+  setMonthLabels();renderPeople();loadForm();renderPlan();load(true);
+}
+function tab(which){
+  const prefs=which==='prefs';
+  $('tPrefs').setAttribute('aria-selected',prefs);$('tPlan').setAttribute('aria-selected',!prefs);
+  $('pPrefs').hidden=!prefs;$('pPlan').hidden=prefs;
+}
+function showLogin(){
+  user=null;clearInterval(pollT);
+  $('appView').hidden=true;$('loginView').hidden=false;
+  const box=$('loginPeople');box.innerHTML='';
+  for(const s of [...STAFF,{id:'szef',name:'Szef',role:'układa grafik'}]){
+    const b=document.createElement('button');b.className='person';b.type='button';b.id='l-'+s.id;
+    b.setAttribute('aria-pressed',loginWho===s.id);
+    b.innerHTML=`<span>${s.name}</span><small>${s.role}</small>`;
+    b.onclick=()=>{loginWho=s.id;$('loginErr').textContent='';$('loginForm').hidden=false;showLoginMarks();$('pin').focus()};
+    box.appendChild(b);
+  }
+}
+function showLoginMarks(){document.querySelectorAll('#loginPeople .person').forEach(b=>b.setAttribute('aria-pressed',b.id==='l-'+loginWho))}
+function startApp(me){
+  user=me;
+  $('loginView').hidden=true;$('appView').hidden=false;
+  $('whoName').textContent=me.admin?'Zalogowany: Szef':`Zalogowany: ${me.name}`;
+  $('adminBtns').hidden=!me.admin;$('manualBox').hidden=!me.admin;
+  $('peopleTitle').textContent=me.admin?'Czyje preferencje edytujesz?':'Twoje preferencje';
+  state.me=me.admin?(state.me&&byId[state.me]?state.me:null):me.id;
+  if(!me.admin)tab('prefs');
+  setMonthLabels();renderPeople();loadForm();renderPlan();load(true);
+  clearInterval(pollT);pollT=setInterval(()=>{if(!state.draft&&document.visibilityState==='visible')load(false)},30000);
+}
+// pracownik widzi tylko siebie jako aktywnego; szef może wybrać każdego
+const _renderPeople=renderPeople;
+renderPeople=function(){
+  _renderPeople();
+  if(user&&!user.admin)STAFF.forEach(s=>{if(s.id!==user.id)$('p-'+s.id).disabled=true});
+};
+$('loginForm').onsubmit=async ev=>{
+  ev.preventDefault();if(!loginWho)return;
+  $('loginErr').textContent='';
+  try{const r=await api('login',{who:loginWho,pin:$('pin').value.trim()});$('pin').value='';startApp(r.me)}
+  catch(e){$('loginErr').textContent=e.message;$('pin').select()}
+};
+$('logout').onclick=async()=>{try{await api('logout',{})}catch(e){}loginWho=null;$('loginForm').hidden=true;showLogin()};
+$('tPrefs').onclick=()=>tab('prefs');$('tPlan').onclick=()=>tab('plan');
+$('prevM').onclick=()=>changeMonth(-1);$('nextM').onclick=()=>changeMonth(1);
+$('savePrefs').onclick=savePrefs;$('genBtn').onclick=generate;$('savePlan').onclick=savePlan;
+setMonthLabels();
+api('me').then(r=>r.me?startApp(r.me):showLogin()).catch(()=>showLogin());
+</script>
+</body>
+</html>
