@@ -243,7 +243,7 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
         <button id="savePlan" disabled>Zapisz grafik</button>
       </div>
     </div>
-    <div class="row"><button id="printBtn">Drukuj grafik (A4)</button><span class="hint" id="printHint"></span></div>
+    <div class="row"><button id="pdfBtn" class="primary">Pobierz PDF (A4)</button><button id="shareBtn" hidden>Wyślij grafik</button><button id="printBtn">Drukuj</button><span class="hint" id="printHint"></span></div>
     <div class="summary" id="summary"></div>
     <div class="legend">
       <span><b class="lS">S</b> sushi</span>
@@ -289,6 +289,7 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // def = ustalenia szefa, obowiązują dopóki pracownik nie wpisze swoich liczb; noWd = dni tygodnia wykluczone (0=nd, 6=sb)
 const STAFF=[
@@ -694,6 +695,77 @@ $('printBtn').onclick=()=>{
   window.print();
 };
 window.addEventListener('beforeprint',()=>{buildPrint()});
+// ---------- PDF A4 bez drukarki: rysujemy kartkę na canvasie i wkładamy do PDF ----------
+function sheetCanvas(){
+  const n=nDays(),days=currentDays();if(!days)return null;
+  const W=3508,H=2480,M=110; // A4 poziomo, 300 dpi
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const F='"IBM Plex Sans",Arial,sans-serif';
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#000';x.textBaseline='middle';
+  x.font=`700 76px ${F}`;x.fillText(`Grafik · ${MONTHS[cur.m]} ${cur.y} · Nadarzyn`,M,M+30);
+  x.font=`400 34px ${F}`;x.fillStyle='#444';
+  x.fillText((state.draft?'Wersja robocza (niezapisana)':'Stan na '+new Date().toLocaleDateString('pl-PL'))+' · zmiano.pl/nadarzyn',M,M+105);
+  const top=M+170,nameW=330,sumW=150,cw=(W-2*M-nameW-sumW)/n;
+  const groupH=58,rowH=Math.min(170,(H-top-M-140-GROUPS.length*groupH)/STAFF.length),headH=120;
+  const line=(x1,y1,x2,y2)=>{x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke()};
+  x.strokeStyle='#555';x.lineWidth=3;
+  // nagłówek
+  let y=top;
+  for(let d=1;d<=n;d++){const cx=M+nameW+(d-1)*cw;if(isWe(d)){x.fillStyle='#e8e8e8';x.fillRect(cx,y,cw,headH)}}
+  x.fillStyle='#000';x.textAlign='center';
+  for(let d=1;d<=n;d++){const cx=M+nameW+(d-.5)*cw;x.font=`700 40px ${F}`;x.fillText(String(d),cx,y+42);x.font=`400 28px ${F}`;x.fillText(WD[wday(d)],cx,y+88)}
+  x.font=`700 34px ${F}`;x.fillText('Suma',W-M-sumW/2,y+headH/2);x.textAlign='left';x.fillText('Imię',M+20,y+headH/2);
+  y+=headH;
+  for(const g of GROUPS){
+    x.fillStyle='#dcdcdc';x.fillRect(M,y,W-2*M,groupH);x.fillStyle='#000';x.font=`700 30px ${F}`;x.textAlign='left';
+    x.fillText(g.name.toUpperCase(),M+20,y+groupH/2);y+=groupH;
+    for(const st of STAFF.filter(q=>q.group===g.id)){
+      let cnt=0;
+      for(let d=1;d<=n;d++){
+        const cx=M+nameW+(d-1)*cw,v=days[d-1];
+        if(isWe(d)){x.fillStyle='#ececec';x.fillRect(cx,y,cw,rowH)}
+        const sl=v===null?'–':slotOf(v,st.id);
+        if(sl&&sl!=='–')cnt++;
+        if(sl){x.fillStyle=sl==='–'?'#999':'#000';x.font=`700 52px ${F}`;x.textAlign='center';x.fillText(sl,cx+cw/2,y+rowH/2)}
+      }
+      x.fillStyle='#000';x.textAlign='left';x.font=`600 44px ${F}`;x.fillText(st.name,M+20,y+rowH/2);
+      x.textAlign='center';x.font=`700 46px ${F}`;x.fillText(String(cnt),W-M-sumW/2,y+rowH/2);
+      y+=rowH;line(M,y,W-M,y);
+    }
+  }
+  // siatka
+  x.lineWidth=3;x.strokeRect(M,top,W-2*M,y-top);
+  line(M,top+headH,W-M,top+headH);
+  for(let d=0;d<=n;d++){const cx=M+nameW+d*cw;line(cx,top,cx,y)}
+  // legenda
+  x.textAlign='left';x.fillStyle='#333';x.font=`400 32px ${F}`;
+  x.fillText('S – sushi    K – kucharz    X – kierowca / kelnerka    – lokal zamknięty    szare tło = weekend',M,y+60);
+  return c;
+}
+function sheetPdf(){
+  const c=sheetCanvas();if(!c)return null;
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,297,210);
+  return pdf.output('blob');
+}
+const pdfName=()=>`grafik-nadarzyn-${mKey()}.pdf`;
+$('pdfBtn').onclick=()=>{
+  if(!window.jspdf){$('printHint').textContent='Nie udało się wczytać generatora PDF. Odśwież stronę.';return}
+  const b=sheetPdf();if(!b){$('printHint').textContent='Nie ma jeszcze grafiku na ten miesiąc.';return}
+  $('printHint').textContent='';
+  const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=pdfName();document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),60000);
+};
+try{
+  if(navigator.canShare&&navigator.canShare({files:[new File(['x'],'t.pdf',{type:'application/pdf'})]}))$('shareBtn').hidden=false;
+}catch(e){}
+$('shareBtn').onclick=async()=>{
+  if(!window.jspdf)return;
+  const b=sheetPdf();if(!b){$('printHint').textContent='Nie ma jeszcze grafiku na ten miesiąc.';return}
+  try{await navigator.share({files:[new File([b],pdfName(),{type:'application/pdf'})],title:'Grafik '+MONTHS[cur.m]})}catch(e){}
+};
+
 setMonthLabels();
 api('me').then(r=>r.me?startApp(r.me):showLogin()).catch(()=>showLogin());
 </script>
