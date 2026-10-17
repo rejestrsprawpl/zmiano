@@ -2,28 +2,270 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Zmiano · grafik pracy dla gastronomii</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zmiano · grafik pracy dla małej gastronomii</title>
+<meta name="description" content="Pracownicy wpisują z telefonu, kiedy mogą pracować. Ty ustawiasz zasady lokalu. Zmiano układa grafik na cały miesiąc i drukuje go na kartkę A4.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-:root{--bg:#f6f4ef;--ink:#1d2621;--muted:#66706a;--accent:#e2674a;--line:#dcd9d0}
-@media (prefers-color-scheme:dark){:root{--bg:#141a17;--ink:#e9ece7;--muted:#9aa49d;--accent:#f08a6f;--line:#33403a;color-scheme:dark}}
+/* Układ: jedna kolumna treści, hero z „kartką grafiku” po prawej; sekcje oddzielone pasami tła */
+:root{
+  --bg:#f6f4ef; --paper:#fffdf8; --band:#ece8de; --ink:#1d2621; --muted:#5f6a63; --line:#d9d4c7;
+  --nori:#24382d; --salmon:#d9583a; --salmon-soft:#fbe1d8; --wasabi:#5f7f2c; --wasabi-soft:#e5ecd6;
+  --f-display:"Familjen Grotesk",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#131915; --paper:#1b221e; --band:#18201b; --ink:#e8ebe6; --muted:#9ba59e; --line:#334039;
+  --nori:#cfe0c9; --salmon:#f0866b; --salmon-soft:#3c241d; --wasabi:#a5c46b; --wasabi-soft:#252f1b; color-scheme:dark}}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;align-items:center;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans",system-ui,sans-serif;padding:32px max(20px,env(safe-area-inset-left))}
-main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-h1{font-family:"Familjen Grotesk",system-ui,sans-serif;font-size:clamp(40px,9vw,64px);line-height:1;margin:0;letter-spacing:-.02em}
-h1 span{color:var(--accent)}
-p{margin:0;color:var(--muted);max-width:46ch}
-.lead{font-size:20px;color:var(--ink)}
-.c{border-top:1px solid var(--line);padding-top:18px;font-size:14px}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 var(--f-body)}
+a{color:inherit}
+.in{max-width:1080px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
+h1,h2,h3{font-family:var(--f-display);line-height:1.08;letter-spacing:-.015em;margin:0;text-wrap:balance}
+h1{font-size:clamp(40px,6.4vw,72px);font-weight:700}
+h2{font-size:clamp(28px,3.6vw,40px);font-weight:700}
+h3{font-size:20px;font-weight:600}
+p{margin:0}
+.lead{font-size:clamp(18px,1.6vw,21px);color:var(--muted);max-width:44ch}
+.eyebrow{font:600 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--salmon)}
+.btn{display:inline-flex;align-items:center;gap:10px;font:600 16px/1 var(--f-body);text-decoration:none;padding:15px 22px;border-radius:10px;border:1.5px solid var(--nori);transition:transform .15s}
+.btn.primary{background:var(--nori);color:var(--bg)}
+.btn:hover{transform:translateY(-1px)}
+.btn:focus-visible{outline:3px solid var(--salmon);outline-offset:3px}
+
+/* nawigacja */
+nav{padding-block:22px}
+nav .in{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.logo{font:700 26px/1 var(--f-display);letter-spacing:-.02em;text-decoration:none}
+.logo span{color:var(--salmon)}
+nav .links{display:flex;gap:22px;font-size:15px}
+nav .links a{text-decoration:none;color:var(--muted)}
+nav .links a:hover{color:var(--ink)}
+
+/* hero */
+.hero{padding-block:28px 72px}
+.hero .in{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center}
+.hero-copy{display:flex;flex-direction:column;gap:24px;min-width:0}
+.hero h1 em{font-style:normal;color:var(--salmon)}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.cta small{color:var(--muted);font-size:14px}
+
+/* kartka grafiku */
+.sheet{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px 18px 14px;box-shadow:0 1px 0 var(--line),0 24px 48px -28px rgba(20,30,25,.35);transform:rotate(1.2deg);min-width:0}
+.sheet-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.sheet-head b{font:700 17px var(--f-display)}
+.sheet-head span{font:500 11px var(--f-mono);color:var(--muted)}
+.grid{display:grid;grid-template-columns:64px repeat(14,1fr);border-top:1px solid var(--line);border-left:1px solid var(--line);font:600 11px/1 var(--f-mono)}
+.grid div{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:26px;display:flex;align-items:center;justify-content:center;min-width:0}
+.grid .nm{justify-content:flex-start;padding-left:6px;font:600 11px var(--f-body)}
+.grid .hd{color:var(--muted);font-weight:500;font-size:10px}
+.grid .we{background:var(--band)}
+.grid .S{background:var(--salmon-soft);color:var(--salmon)}
+.grid .K{background:var(--wasabi-soft);color:var(--wasabi)}
+.grid .X{color:var(--nori)}
+.grid .no{color:var(--salmon);font-weight:500}
+.sheet-foot{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:11px;color:var(--muted)}
+.sheet-foot b{font-family:var(--f-mono)}
+.stamp{display:inline-block;margin-top:12px;font:600 11px var(--f-mono);letter-spacing:.08em;color:var(--wasabi);border:1.5px solid var(--wasabi);padding:5px 8px;border-radius:4px;transform:rotate(-2deg)}
+
+/* sekcje */
+section{padding-block:80px}
+.band{background:var(--band)}
+.sec-head{display:flex;flex-direction:column;gap:12px;margin-bottom:40px;max-width:640px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;counter-reset:s}
+.step{display:flex;flex-direction:column;gap:10px;padding-top:18px;border-top:2px solid var(--ink)}
+.step::before{counter-increment:s;content:"0" counter(s);font:600 13px var(--f-mono);color:var(--salmon)}
+.step p{color:var(--muted)}
+
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+.rule-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.rule-list li{display:flex;gap:14px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--line)}
+.rule-list li:first-child{border-top:1px solid var(--line)}
+.rule-list code{font:600 13px var(--f-mono);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:3px 7px;white-space:nowrap}
+.rule-list span{color:var(--muted)}
+
+.compare{width:100%;border-collapse:collapse;font-size:16px}
+.compare th,.compare td{text-align:left;padding:16px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+.compare thead th{font:600 13px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.compare thead th:last-child{color:var(--salmon)}
+.compare td:first-child{font-weight:600;width:28%}
+.compare td:nth-child(2){color:var(--muted)}
+.compare td:last-child{background:var(--paper)}
+.tw{overflow-x:auto}
+
+.who{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.who div{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:6px}
+.who b{font:600 18px var(--f-display)}
+.who span{color:var(--muted);font-size:15px}
+
+.contact{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:center}
+.contact-box{background:var(--nori);color:var(--bg);border-radius:14px;padding:32px;display:flex;flex-direction:column;gap:14px}
+.contact-box .mail{font:600 clamp(20px,2.4vw,26px) var(--f-mono);word-break:break-all}
+.contact-box p{opacity:.8;font-size:15px}
+.contact-box .btn{border-color:var(--bg);background:var(--bg);color:var(--nori);align-self:flex-start}
+
+footer{padding-block:36px;font-size:14px;color:var(--muted);border-top:1px solid var(--line)}
+footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+@media (max-width:860px){
+  .hero .in,.rules,.contact{grid-template-columns:1fr;gap:40px}
+  .steps{grid-template-columns:1fr}
+  .who{grid-template-columns:1fr 1fr}
+  nav .links{display:none}
+  section{padding-block:56px}
+  .sheet{transform:none}
+}
+@media (max-width:420px){.who{grid-template-columns:1fr}.grid{grid-template-columns:52px repeat(14,1fr)}}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
 </style>
 </head>
 <body>
-<main>
-  <h1>zmiano<span>.</span></h1>
-  <p class="lead">Grafik pracy dla restauracji, który układa się sam.</p>
-  <p>Pracownicy wpisują, kiedy mogą pracować. Ty ustawiasz zasady lokalu. Zmiano dobiera obsadę na cały miesiąc: kuchnię, salę i dowóz.</p>
-  <p class="c">Wkrótce. Kontakt: kontakt@zmiano.pl</p>
-</main>
+
+<nav><div class="in">
+  <a class="logo" href="/">zmiano<span>.</span></a>
+  <div class="links">
+    <a href="#jak">Jak to działa</a>
+    <a href="#zasady">Zasady lokalu</a>
+    <a href="#porownanie">Porównanie</a>
+    <a href="#kontakt">Kontakt</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="in">
+  <div class="hero-copy">
+    <p class="eyebrow">Grafik pracy dla gastronomii</p>
+    <h1>Kartka z krzyżykami <em>przestaje się gubić.</em></h1>
+    <p class="lead">Pracownicy wpisują z telefonu, kiedy mogą pracować. Ty ustawiasz zasady lokalu. Zmiano układa grafik na cały miesiąc i drukuje go na kartkę A4 do kuchni.</p>
+    <div class="cta">
+      <a class="btn primary" href="#kontakt">Chcę grafik dla mojego lokalu</a>
+      <small>Konfigurujemy go za Ciebie</small>
+    </div>
+  </div>
+  <div class="sheet" aria-label="Przykładowy grafik ułożony przez Zmiano">
+    <div class="sheet-head"><b>Grafik · listopad</b><span>1–14 · przykład</span></div>
+    <div class="grid" id="demo"></div>
+    <div class="sheet-foot"><span><b>S</b> sushi</span><span><b>K</b> kuchnia</span><span><b>X</b> kierowca / kelnerka</span><span><b style="color:var(--salmon)">✕</b> nie może</span></div>
+    <span class="stamp">✓ MAX 4 DNI Z RZĘDU · KAŻDA ZMIANA OBSADZONA</span>
+  </div>
+</div></header>
+
+<section id="jak" class="band"><div class="in">
+  <div class="sec-head">
+    <p class="eyebrow">Jak to działa</p>
+    <h2>Trzy kroki zamiast wieczoru z długopisem</h2>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <h3>Pracownicy wpisują dyspozycyjność</h3>
+      <p>Każdy wchodzi z telefonu, wybiera swoje imię i wpisuje 4-cyfrowy PIN. Bez zakładania kont, maili i aplikacji ze sklepu. Zaznacza dni, w które chce pracować, i te, w które nie może.</p>
+    </div>
+    <div class="step">
+      <h3>Ty klikasz „Ułóż grafik”</h3>
+      <p>Zmiano obsadza każdą zmianę według zasad Twojego lokalu, pilnuje limitów dni i odpoczynku. Pokazuje też, czego nie dało się spełnić i dlaczego.</p>
+    </div>
+    <div class="step">
+      <h3>Poprawiasz, zapisujesz, drukujesz</h3>
+      <p>Każdy dzień możesz zmienić ręcznie. Gotowy grafik pracownicy widzą w telefonie, a Ty drukujesz go na jedną kartkę A4 i wieszasz w kuchni.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="zasady"><div class="in rules">
+  <div class="sec-head" style="margin:0">
+    <p class="eyebrow">Zasady lokalu</p>
+    <h2>Rozumie, jak naprawdę działa Twoja zmiana</h2>
+    <p class="lead">Duże systemy znają stanowiska i godziny. W małym lokalu liczy się, kto z kim może stanąć na zmianie. Takie zasady wpisujemy do Zmiano przy wdrożeniu.</p>
+  </div>
+  <ul class="rule-list">
+    <li><code>obsada</code><span>Na każdej zmianie: sushi master, kucharz, kierowca i kelnerka.</span></li>
+    <li><code>role</code><span>Ania robi tylko sushi, Tomek sushi i kuchnię. Gdy są razem, Tomek idzie na kuchnię.</span></li>
+    <li><code>limit</code><span>Nikt nie pracuje więcej niż 4 dni z rzędu.</span></li>
+    <li><code>etat</code><span>Kuba chce 24 dni, Ola 6–8, a szef sushi sam wybiera swoje 3 dni.</span></li>
+    <li><code>stałe</code><span>Kierowca nie jeździ w soboty.</span></li>
+    <li><code>równo</code><span>Dwie kelnerki dzielą miesiąc po połowie.</span></li>
+  </ul>
+</div></section>
+
+<section id="porownanie" class="band"><div class="in">
+  <div class="sec-head">
+    <p class="eyebrow">Porównanie</p>
+    <h2>Zrobione dla lokalu na 5–20 osób</h2>
+    <p class="lead">Programy kadrowe są świetne dla sieci i dużych firm. Mały lokal potrzebuje głównie jednego: żeby grafik był gotowy i nikt się w nim nie gubił.</p>
+  </div>
+  <div class="tw">
+    <table class="compare">
+      <thead><tr><th></th><th>Typowy program do grafików</th><th>Zmiano</th></tr></thead>
+      <tbody>
+        <tr><td>Logowanie pracownika</td><td>Konto, e-mail, aplikacja do pobrania</td><td>Imię i 4-cyfrowy PIN w przeglądarce</td></tr>
+        <tr><td>Konfiguracja</td><td>Sam ustawiasz stanowiska, szablony i reguły</td><td>Opowiadasz, jak pracujecie, a my ustawiamy za Ciebie</td></tr>
+        <tr><td>Zasady „kto z kim”</td><td>Zwykle tylko stanowiska i kwalifikacje</td><td>Pary, role zależne od składu, stałe wolne dni</td></tr>
+        <tr><td>Cena</td><td>Za każdego pracownika, co miesiąc</td><td>Jedna stała cena za lokal</td></tr>
+        <tr><td>Dodatki</td><td>Rejestracja czasu, urlopy, kadry, raporty</td><td>Tylko grafik, za to porządnie, z wydrukiem A4</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div></section>
+
+<section><div class="in">
+  <div class="sec-head">
+    <p class="eyebrow">Dla kogo</p>
+    <h2>Dla lokali, w których grafik robi się „na kartce”</h2>
+  </div>
+  <div class="who">
+    <div><b>Sushi i ramen</b><span>Sushi masterzy, kuchnia, dowóz</span></div>
+    <div><b>Pizzerie</b><span>Piec, kuchnia, kierowcy, sala</span></div>
+    <div><b>Bistro i kawiarnie</b><span>Bar, kuchnia, sala, weekendy</span></div>
+    <div><b>Food trucki</b><span>Małe ekipy, zmienne lokalizacje</span></div>
+  </div>
+</div></section>
+
+<section id="kontakt" class="band"><div class="in contact">
+  <div class="sec-head" style="margin:0">
+    <p class="eyebrow">Start</p>
+    <h2>Pierwszy grafik ustawiamy razem</h2>
+    <p class="lead">Napisz, ile osób pracuje u Ciebie i jakie macie zasady. Wdrożymy lokal, przygotujemy PIN-y i gotową wiadomość dla pracowników. Pierwszy miesiąc testujesz na żywym grafiku.</p>
+  </div>
+  <div class="contact-box">
+    <p>Napisz do nas</p>
+    <span class="mail" id="mail">kontakt@zmiano.pl</span>
+    <a class="btn" href="mailto:kontakt@zmiano.pl?subject=Grafik%20dla%20mojego%20lokalu">Napisz e-mail</a>
+    <p>Pracujesz już w lokalu na Zmiano? Wejdź przez link, który dostałeś od szefa.</p>
+  </div>
+</div></section>
+
+<footer><div class="in">
+  <span>© 2026 Zmiano</span>
+  <span>Grafik pracy dla małej gastronomii</span>
+</div></footer>
+
+<script>
+// przykładowa kartka w hero: 14 dni, każdy dzień = sushi, kuchnia, kierowca, kelnerka
+(function(){
+  const plan=[ // [sushi, kuchnia, kierowca, kelnerka]
+    ['Ania','Tomek','Kuba','Zosia'],['Ania','Marek','Kuba','Ewa'],['Tomek','Marek','Kuba','Zosia'],
+    ['Tomek','Marek','Ola','Zosia'],['Ania','Tomek','Kuba','Ewa'],['Tomek','Marek','Kuba','Zosia'],
+    ['Ania','Marek','Ola','Ewa'],['Ania','Tomek','Kuba','Ewa'],['Tomek','Marek','Kuba','Zosia'],
+    ['Ania','Marek','Ola','Zosia'],['Tomek','Marek','Kuba','Ewa'],['Ania','Tomek','Kuba','Zosia'],
+    ['Tomek','Marek','Ola','Ewa'],['Ania','Marek','Ola','Ewa']];
+  const people=['Ania','Tomek','Marek','Kuba','Ola','Zosia','Ewa'];
+  const blocked={Kuba:[4]};
+  const we=i=>[0,6,7,13].includes(i);
+  const g=document.getElementById('demo');let h='<div class="nm hd"></div>';
+  plan.forEach((_,i)=>{h+=`<div class="hd${we(i)?' we':''}">${i+1}</div>`});
+  people.forEach(n=>{
+    h+=`<div class="nm">${n}</div>`;
+    plan.forEach((d,i)=>{
+      const v=d[0]===n?'S':d[1]===n?'K':(d[2]===n||d[3]===n)?'X':(blocked[n]||[]).includes(i+1)?'✕':'';
+      const cls=v==='S'?'S':v==='K'?'K':v==='X'?'X':v==='✕'?'no':'';
+      h+=`<div class="${cls}${we(i)?' we':''}">${v}</div>`;
+    });
+  });
+  g.innerHTML=h;
+})();
+</script>
 </body>
 </html>
