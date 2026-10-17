@@ -62,16 +62,44 @@ function update(string $m, callable $fn): array {
   return $d;
 }
 
+// licznik nieudanych logowań (data/attempts.php), zapis pod blokadą pliku
+function attempts(callable $fn): void {
+  if (!is_dir(DATA_DIR)) mkdir(DATA_DIR, 0750, true);
+  $fh = fopen(DATA_DIR . '/attempts.php', 'c+');
+  if (!$fh) return;
+  flock($fh, LOCK_EX);
+  $raw = stream_get_contents($fh);
+  $a = $raw ? (json_decode(substr($raw, strlen(GUARD)), true) ?: []) : [];
+  $a = $fn($a);
+  ftruncate($fh, 0); rewind($fh);
+  fwrite($fh, GUARD . json_encode($a));
+  fflush($fh); flock($fh, LOCK_UN); fclose($fh);
+}
+
 switch ($action) {
   case 'login':
     $who = (string)($in['who'] ?? ''); $pin = (string)($in['pin'] ?? '');
-    if ($who === 'szef' && hash_equals($ADMIN_PIN, $pin)) {
-      session_regenerate_id(true);
-      $_SESSION['who'] = ['id' => 'szef', 'name' => 'Szef', 'admin' => true];
-    } elseif (isset($USERS[$who]) && hash_equals((string)$USERS[$who]['pin'], $pin)) {
-      session_regenerate_id(true);
-      $_SESSION['who'] = ['id' => $who, 'name' => $USERS[$who]['name'], 'admin' => false];
-    } else { sleep(1); fail('Zły PIN.', 401); }
+    if ($who !== 'szef' && !isset($USERS[$who])) fail('Zły PIN.', 401);
+    // blokada po nieudanych próbach: 5 prób na osobę i 20 z jednego adresu IP na 15 minut
+    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '?');
+    $now = time(); $win = 15 * 60;
+    $locked = false;
+    attempts(function ($a) use ($who, $ip, $now, $win, &$locked) {
+      foreach ($a as $k => $list) { $a[$k] = array_values(array_filter($list, fn($t) => $t > $now - $win)); if (!$a[$k]) unset($a[$k]); }
+      if (count($a["u:$who"] ?? []) >= 5 || count($a["ip:$ip"] ?? []) >= 20) $locked = true;
+      return $a;
+    });
+    if ($locked) fail('Za dużo błędnych prób. Spróbuj ponownie za 15 minut.', 429);
+    $ok = ($who === 'szef') ? hash_equals($ADMIN_PIN, $pin) : hash_equals((string)$USERS[$who]['pin'], $pin);
+    if (!$ok) {
+      attempts(function ($a) use ($who, $ip, $now) { $a["u:$who"][] = $now; $a["ip:$ip"][] = $now; return $a; });
+      sleep(1); fail('Zły PIN.', 401);
+    }
+    attempts(function ($a) use ($who) { unset($a["u:$who"]); return $a; });
+    session_regenerate_id(true);
+    $_SESSION['who'] = $who === 'szef'
+      ? ['id' => 'szef', 'name' => 'Szef', 'admin' => true]
+      : ['id' => $who, 'name' => $USERS[$who]['name'], 'admin' => false];
     out(['me' => me()]);
 
   case 'logout':
