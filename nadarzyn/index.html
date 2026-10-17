@@ -114,6 +114,29 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
 .whoami{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
 .whoami button{padding:5px 10px;font-size:13px}
 .person:disabled{opacity:.45;cursor:default}
+/* ---------- wydruk A4 ---------- */
+#printSheet{display:none}
+@page{size:A4 landscape;margin:8mm}
+@media print{
+  html,body{background:#fff!important;color:#000!important;padding:0!important}
+  .wrap{display:none!important}
+  #printSheet{display:block;font-family:var(--f-body);color:#000}
+  #printSheet h1{font-family:var(--f-display);font-size:20pt;margin:0 0 1mm;color:#000}
+  #printSheet .meta{font-size:9pt;margin:0 0 4mm;color:#333}
+  #printSheet table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12pt}
+  #printSheet th,#printSheet td{border:.3mm solid #555;text-align:center;padding:3.6mm 0;font-variant-numeric:tabular-nums}
+  #printSheet col.n{width:26mm} #printSheet col.s{width:11mm}
+  #printSheet th{font-weight:600;font-size:9.5pt;line-height:1.15;padding:1.6mm 0}
+  #printSheet th small{display:block;font-weight:400;font-size:7.5pt}
+  #printSheet td.name{text-align:left;padding-left:1.5mm;font-weight:600;white-space:nowrap;overflow:hidden}
+  #printSheet tr.g td{background:#e6e6e6;font-size:8pt;font-weight:700;letter-spacing:.06em;text-align:left;padding:1mm 1.5mm;text-transform:uppercase}
+  #printSheet .we{background:#ececec}
+  #printSheet td.c{font-weight:700}
+  #printSheet td.off{color:#888;font-weight:400}
+  #printSheet tr{break-inside:avoid}
+  #printSheet .legend{font-size:9pt;margin-top:3mm;color:#333;display:flex;gap:6mm;flex-wrap:wrap}
+  #printSheet *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -220,6 +243,7 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
         <button id="savePlan" disabled>Zapisz grafik</button>
       </div>
     </div>
+    <div class="row"><button id="printBtn">Drukuj grafik (A4)</button><span class="hint" id="printHint"></span></div>
     <div class="summary" id="summary"></div>
     <div class="legend">
       <span><b class="lS">S</b> sushi</span>
@@ -633,8 +657,46 @@ function armClear(btn,what,label){
 }
 armClear($('clrPrefs'),'prefs','Wyczyść preferencje wszystkich');
 armClear($('clrPlan'),'plan','Usuń zapisany grafik');
+
+// ---------- wydruk ----------
+function buildPrint(){
+  const n=nDays(),days=currentDays();
+  if(!days)return false;
+  const esc2=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  let h=`<h1>Grafik · ${MONTHS[cur.m]} ${cur.y} · Nadarzyn</h1>`;
+  h+=`<p class="meta">${state.draft?'Wersja robocza (niezapisana)':'Wydrukowano '+new Date().toLocaleDateString('pl-PL')} · zmiano.pl/nadarzyn</p>`;
+  h+='<table><colgroup><col class="n">'+'<col>'.repeat(n)+'<col class="s"></colgroup><thead><tr><th>Imię</th>';
+  for(let d=1;d<=n;d++)h+=`<th class="${isWe(d)?'we':''}">${d}<small>${WD[wday(d)]}</small></th>`;
+  h+='<th>Suma</th></tr></thead><tbody>';
+  for(const g of GROUPS){
+    h+=`<tr class="g"><td colspan="${n+2}">${g.name}</td></tr>`;
+    for(const s of STAFF.filter(x=>x.group===g.id)){
+      const e=eff(s.id),bl=new Set(e.blocked);let cnt=0;
+      h+=`<tr><td class="name">${esc2(s.name)}</td>`;
+      for(let d=1;d<=n;d++){
+        const x=days[d-1];const we=isWe(d)?' we':'';
+        if(x===null){h+=`<td class="off${we}">–</td>`;continue}
+        const sl=slotOf(x,s.id);
+        if(sl){cnt++;h+=`<td class="c${we}">${sl}</td>`}
+        else h+=`<td class="${we}"></td>`;
+      }
+      h+=`<td><b>${cnt}</b></td></tr>`;
+    }
+  }
+  h+='</tbody></table>';
+  h+='<div class="legend"><span><b>S</b> sushi</span><span><b>K</b> kucharz</span><span><b>X</b> kierowca / kelnerka</span><span><b>–</b> lokal zamknięty</span><span>szare tło = weekend</span></div>';
+  $('printSheet').innerHTML=h;
+  return true;
+}
+$('printBtn').onclick=()=>{
+  if(!buildPrint()){$('printHint').textContent='Nie ma jeszcze grafiku na ten miesiąc.';return}
+  $('printHint').textContent='';
+  window.print();
+};
+window.addEventListener('beforeprint',()=>{buildPrint()});
 setMonthLabels();
 api('me').then(r=>r.me?startApp(r.me):showLogin()).catch(()=>showLogin());
 </script>
+<div id="printSheet" aria-hidden="true"></div>
 </body>
 </html>
