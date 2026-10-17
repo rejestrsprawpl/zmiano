@@ -72,6 +72,10 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mu
 .sheet td.miss{color:var(--wasabi)}
 .cal button.off{background:var(--block-soft);border-color:var(--block);color:var(--block);text-decoration:line-through}
 .hint{font-size:13px;color:var(--muted);margin:0}
+.howto{background:var(--wasabi-soft);border:1px solid var(--wasabi);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.howto ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.danger{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+button.warn{border-color:var(--block);color:var(--block)}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .status{font-size:13px;color:var(--muted)}
 .status.ok{color:var(--wasabi)} .status.err{color:var(--block)}
@@ -148,6 +152,17 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
   </div>
 
   <section id="pPrefs" class="panel">
+    <div class="howto" id="howto" hidden>
+      <h2>Co masz zrobić</h2>
+      <ol>
+        <li>Sprawdź u góry, czy to dobry miesiąc. Strzałkami ‹ › przełączasz miesiące.</li>
+        <li>Wpisz, ile dni chcesz przepracować (od–do). Jeśli zostawisz puste, obowiązuje to, co ustaliłeś z szefem.</li>
+        <li>Jeśli masz ulubiony rytm pracy (np. 2+2), wybierz go z listy. Jeśli nie, zostaw „Obojętnie”.</li>
+        <li id="howtoCal">W kalendarzu stuknij dzień raz: chcesz pracować (zielony). Drugi raz: nie możesz (czerwony). Trzeci raz: obojętnie.</li>
+        <li>Na koniec kliknij <b>„Zapisz moje preferencje”</b>. Możesz je zmieniać, dopóki szef nie ułoży grafiku.</li>
+        <li>Gotowy grafik zobaczysz w zakładce <b>„Grafik”</b>, gdy szef go zapisze.</li>
+      </ol>
+    </div>
     <div>
       <h2 id="peopleTitle">Kim jesteś?</h2>
       <p class="hint">Zielona kropka oznacza, że ktoś już wpisał preferencje na ten miesiąc.</p>
@@ -220,6 +235,17 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
       <summary style="cursor:pointer;font-weight:600">Poprawki ręczne, dzień po dniu</summary>
       <p class="hint" style="margin:8px 0">Dla każdego dnia: para sushi · kucharz, kierowca, kelnerka. Pokazują się tylko dozwolone pary. Po zmianach kliknij „Zapisz grafik”.</p>
       <div class="days" id="days"></div>
+    </details>
+    <details id="clearBox">
+      <summary style="cursor:pointer;font-weight:600">Wyczyść miesiąc</summary>
+      <div class="danger">
+        <p class="hint">Usuwa dane tylko z wybranego miesiąca. Tego nie da się cofnąć. Każdy przycisk trzeba kliknąć dwa razy.</p>
+        <div class="row">
+          <button id="clrPrefs" class="warn">Wyczyść preferencje wszystkich</button>
+          <button id="clrPlan" class="warn">Usuń zapisany grafik</button>
+        </div>
+        <span class="status" id="clrStatus"></span>
+      </div>
     </details>
     <details>
       <summary style="cursor:pointer;font-weight:600">Zasady</summary>
@@ -564,7 +590,8 @@ function startApp(me){
   user=me;
   $('loginView').hidden=true;$('appView').hidden=false;
   $('whoName').textContent=me.admin?'Zalogowany: Szef':`Zalogowany: ${me.name}`;
-  $('adminBtns').hidden=!me.admin;$('manualBox').hidden=!me.admin;
+  $('adminBtns').hidden=!me.admin;$('manualBox').hidden=!me.admin;$('clearBox').hidden=!me.admin;$('howto').hidden=!!me.admin;
+  $('howtoCal').textContent=byId[me.id]?.picksOwn?'W kalendarzu stuknij dni, w które chcesz pracować (zielone). Pracujesz tylko w zaznaczone dni.':'W kalendarzu stuknij dzień raz: chcesz pracować (zielony). Drugi raz: nie możesz (czerwony). Trzeci raz: obojętnie.';
   $('peopleTitle').textContent=me.admin?'Czyje preferencje edytujesz?':'Twoje preferencje';
   state.me=me.admin?(state.me&&byId[state.me]?state.me:null):me.id;
   if(!me.admin)tab('prefs');
@@ -587,6 +614,25 @@ $('logout').onclick=async()=>{try{await api('logout',{})}catch(e){}loginWho=null
 $('tPrefs').onclick=()=>tab('prefs');$('tPlan').onclick=()=>tab('plan');
 $('prevM').onclick=()=>changeMonth(-1);$('nextM').onclick=()=>changeMonth(1);
 $('savePrefs').onclick=savePrefs;$('genBtn').onclick=generate;$('savePlan').onclick=savePlan;
+
+// czyszczenie miesiąca: pierwsze kliknięcie uzbraja przycisk, drugie wykonuje
+function armClear(btn,what,label){
+  let armed=false,t=null;
+  btn.onclick=async()=>{
+    if(!armed){armed=true;btn.textContent='Na pewno? Kliknij jeszcze raz';t=setTimeout(()=>{armed=false;btn.textContent=label},5000);return}
+    clearTimeout(t);armed=false;btn.disabled=true;btn.textContent='Czyszczę…';
+    try{
+      await api('clearMonth',{month:mKey(),prefs:what==='prefs',plan:what==='plan'});
+      if(what==='plan')state.draft=null;
+      $('clrStatus').textContent=what==='prefs'?`Preferencje na ${MONTHS[cur.m]} wyczyszczone.`:`Grafik na ${MONTHS[cur.m]} usunięty.`;
+      $('clrStatus').className='status ok';
+      await load(true);
+    }catch(e){$('clrStatus').textContent=e.message;$('clrStatus').className='status err'}
+    finally{btn.disabled=false;btn.textContent=label}
+  };
+}
+armClear($('clrPrefs'),'prefs','Wyczyść preferencje wszystkich');
+armClear($('clrPlan'),'plan','Usuń zapisany grafik');
 setMonthLabels();
 api('me').then(r=>r.me?startApp(r.me):showLogin()).catch(()=>showLogin());
 </script>

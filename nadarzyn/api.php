@@ -144,6 +144,13 @@ switch ($action) {
     update($month, function ($d) use ($plan) { $d['plan'] = $plan; return $d; });
     out(['ok' => true, 'plan' => $plan]);
 
+  case 'clearMonth':
+    needAdmin(); $month = monthOk($in['month'] ?? '');
+    $cp = !empty($in['prefs']); $cl = !empty($in['plan']);
+    if (!$cp && !$cl) fail('Nic nie wybrano.');
+    update($month, function ($d) use ($cp, $cl) { if ($cp) $d['prefs'] = []; if ($cl) $d['plan'] = null; return $d; });
+    out(['ok' => true]);
+
   default:
     fail('Nieznana akcja.', 404);
 }
