@@ -11,3 +11,6 @@ Grafik pracy dla gastronomii. Strona: https://zmiano.pl
 - `*/data/` – preferencje i grafiki zapisane przez pracowników
 
 Oba wgrywa się jednorazowo przez FTP. Wdrożenia z Gita ich nie nadpisują.
+
+## Wdrożenie
+Repozytorium jest podpięte pod hosting OVH (Git + webhook). Każdy push na `main` aktualizuje https://zmiano.pl.
