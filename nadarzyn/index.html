@@ -68,6 +68,10 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mu
 .cal .h{font-size:11px;text-align:center;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .cal button{padding:8px 0;font-family:var(--f-mono);font-size:13px;border-radius:6px}
 .cal button.we{background:var(--weekend)}
+.cal button.shut{opacity:.45;text-decoration:line-through;cursor:not-allowed}
+.shutbox{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px dashed var(--line);border-radius:10px}
+#shutCal button.closedOn{background:var(--ink);color:var(--bg);border-color:var(--ink);text-decoration:line-through}
+.sheet td.chg{outline:2px solid var(--salmon);outline-offset:-2px}
 .cal button.want{background:var(--wasabi-soft);border-color:var(--wasabi);color:var(--wasabi);font-weight:700}
 .sheet td.miss{color:var(--wasabi)}
 .cal button.off{background:var(--block-soft);border-color:var(--block);color:var(--block);text-decoration:line-through}
@@ -244,6 +248,11 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
       </div>
     </div>
     <div class="row"><button id="pdfBtn" class="primary">Pobierz PDF (A4)</button><button id="shareBtn" hidden>Wyślij grafik</button><button id="printBtn">Drukuj</button><span class="hint" id="printHint"></span></div>
+    <div class="shutbox" id="shutBox" hidden>
+      <div><b>Dni zamknięte</b> <span class="hint">Stuknij dzień, w który lokal jest nieczynny. Ułożony grafik dopasuje się sam, zmieniając jak najmniej.</span></div>
+      <div class="cal" id="shutCal"></div>
+      <span class="status" id="shutStatus"></span>
+    </div>
     <div class="summary" id="summary"></div>
     <div class="legend">
       <span><b class="lS">S</b> sushi</span>
@@ -330,7 +339,8 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const now=new Date();
 let cur={y:now.getFullYear(),m:now.getMonth()+1};
 if(cur.m===12){cur={y:cur.y+1,m:0}}
-let state={prefs:{},plan:null,draft:null,me:null,blocked:new Set(),want:new Set()};
+let state={prefs:{},plan:null,draft:null,me:null,blocked:new Set(),want:new Set(),closed:new Set()};
+const closedArr=()=>Array.from({length:nDays()},(_,i)=>state.closed.has(i+1));
 let db=null,unsubs=[];
 const mKey=()=>`${cur.y}-${String(cur.m+1).padStart(2,'0')}`;
 const nDays=()=>new Date(cur.y,cur.m+1,0).getDate();
@@ -381,6 +391,7 @@ function renderCal(){
   for(let i=0;i<first;i++)c.appendChild(document.createElement('div'));
   for(let d=1;d<=nDays();d++){
     const b=document.createElement('button');b.id='cal-'+d;b.textContent=d;
+    if(state.closed.has(d)){b.className='shut'+(isWe(d)?' we':'');b.disabled=true;b.setAttribute('aria-label',`${d}: lokal zamknięty`);c.appendChild(b);continue}
     const fixedOff=(s.noWd||[]).includes(wday(d));
     const st=fixedOff?'off':state.want.has(d)?'want':state.blocked.has(d)?'off':'';
     b.className=(isWe(d)?'we ':'')+st;
@@ -452,8 +463,10 @@ function fairShares(closed){
   }
   return res;
 }
-function solve(closed){
+function solve(closed,base=null){
   const n=nDays(),fair=fairShares(closed);
+  // przy dopasowaniu do zmian: każda zmieniona osoba w kratce kosztuje, więc silnik rusza tylko to, co musi
+  const CHG=25,chg=(d,x)=>{const b=base&&base[d];if(!b||!x)return 0;return CHG*((b.s!==x.s)+(b.k!==x.k)+(b.d!==x.d)+(b.w!==x.w))};
   const E=Object.fromEntries(STAFF.map(s=>[s.id,eff(s.id)]));
   for(const id in E){const e=E[id];e.off=new Set(e.blocked);for(let d=1;d<=n;d++)if(e.noWd.includes(wday(d)))e.off.add(d);e.wantSet=new Set(e.want);e.rh=parseRhythm(e.rhythm)}
   const can=(pid,d)=>!E[pid].blocked.includes(d)&&!E[pid].noWd.includes(wday(d))&&!(E[pid].picksOwn&&!E[pid].want.includes(d));
@@ -469,11 +482,12 @@ function solve(closed){
   const pick=a=>a[Math.floor(Math.random()*a.length)];
   const ids=STAFF.map(s=>s.id);
   let best=null,bestC=Infinity;
-  for(let r=0;r<5;r++){
-    const A=opts.map(o=>{if(!o)return null;const p=pick(o.k);return{s:p[0],k:p[1],d:pick(o.d),w:pick(o.w)}});
+  const runs=base?3:5;
+  for(let r=0;r<runs;r++){
+    const A=opts.map((o,d)=>{if(!o)return null;const b=base&&base[d];if(b)return{...b};const p=pick(o.k);return{s:p[0],k:p[1],d:pick(o.d),w:pick(o.w)}});
     const pc={};let c=0;
     for(const id of ids){pc[id]=scorePerson(A,id,n,closed,fair[byId[id].group],E[id]);c+=pc[id]}
-    let T=60;
+    let T=base?6:60;
     for(let it=0;it<30000;it++){
       const d=Math.floor(Math.random()*n),o=opts[d];if(!o)continue;
       const old=A[d],nx={...old},slot=Math.floor(Math.random()*3);
@@ -481,7 +495,7 @@ function solve(closed){
       else if(slot===1){if(o.d.length<2)continue;nx.d=pick(o.d)}
       else{if(o.w.length<2)continue;nx.w=pick(o.w)}
       const aff=new Set([old.s,old.k,old.d,old.w,nx.s,nx.k,nx.d,nx.w]);
-      A[d]=nx;let delta=0;const np={};
+      A[d]=nx;let delta=chg(d,nx)-chg(d,old);const np={};
       for(const id of aff){np[id]=scorePerson(A,id,n,closed,fair[byId[id].group],E[id]);delta+=np[id]-pc[id]}
       if(delta<=0||Math.random()<Math.exp(-delta/T)){c+=delta;Object.assign(pc,np)}else A[d]=old;
       T=Math.max(0.05,T*0.9996);
@@ -511,10 +525,12 @@ function renderPlan(){
       for(let d=1;d<=n;d++){
         const x=days?.[d-1];let cls=isWe(d)?'we':'',txt='';
         const off=bl.has(d)||e.noWd.includes(wday(d));
-        if(days&&x===null){cls='closed';run=0}
+        if(state.closed.has(d)||(days&&x===null)){cls='closed';run=0}
         else{
           const sl=slotOf(x,s.id);
-          if(sl){cls=sl;txt=sl;cnt++;run++;maxRun=Math.max(maxRun,run);if(off){cls+=' bad';notes.push(`${s.name} pracuje ${d}. mimo że nie może`)}}
+          const was=state.draft&&state.plan?slotOf(state.plan.days[d-1],s.id):undefined;
+          if(was!==undefined&&was!==sl)cls+=' chg';
+          if(sl){cls=sl+(cls.includes('chg')?' chg':'');txt=sl;cnt++;run++;maxRun=Math.max(maxRun,run);if(off){cls+=' bad';notes.push(`${s.name} pracuje ${d}. mimo że nie może`)}}
           else{run=0;if(off){cls+=' bl';txt='✕'}else if(wa.has(d)){cls+=' miss';txt='○'}}
         }
         row+=`<td class="${cls}">${txt}</td>`;
@@ -523,13 +539,15 @@ function renderPlan(){
       if(days){
         if(maxRun>MAX_RUN)notes.push(`${s.name} ma ${maxRun} dni pracy z rzędu (limit ${MAX_RUN})`);
         if(e.picksOwn)e.want.forEach(d=>{if(days[d-1]&&!slotOf(days[d-1],s.id))notes.push(`${s.name} wybrał ${d}., ale nie ma go w grafiku`)});
+        if(e.picksOwn)e.want.forEach(d=>{if(state.closed.has(d))notes.push(`${s.name} wybrał ${d}., a lokal jest wtedy zamknięty. Poproś go o wybranie innego dnia.`)});
         if(e.min!=null&&(cnt<e.min||cnt>e.max))chips.push(`<span class="chip warn">${s.name}: ${cnt} zamiast ${rangeTxt(e)}</span>`);
         else chips.push(`<span class="chip ${e.min!=null?'good':''}">${s.name}: ${cnt}</span>`);
       }
     }
   }
   $('sheet').innerHTML=h+'</tbody>';
-  const open=days?days.filter(x=>x!==null).length:n;
+  const open=n-state.closed.size;
+  if(days&&days.some((x,i)=>!x&&!state.closed.has(i+1)))notes.unshift('Niektóre otwarte dni nie są obsadzone. Kliknij „Ułóż ponownie”.');
   chips.unshift(`<span class="chip">Dni otwarte: ${open}</span>`);
   $('summary').innerHTML=chips.join('');
   $('notes').innerHTML=notes.map(x=>`<div>${esc(x)}</div>`).join('');
@@ -543,13 +561,14 @@ function renderDays(){
     const el=document.createElement('div');el.className='day'+(isWe(d)?' we':'');
     el.innerHTML=`<span class="d">${d} ${WD[wday(d)]}</span>`;
     const mk=(id,label,html,val)=>{const s=document.createElement('select');s.id=id;s.setAttribute('aria-label',label);s.innerHTML=html;s.value=val;return s};
-    const kSel=mk('dk-'+d,`Kuchnia ${d}`,(days?'':'<option value="?">nie ustalono</option>')+'<option value="">— zamknięte —</option>'+opt(PAIRS.map(p=>p.join('|')),0,v=>v.split('|').map(i=>byId[i].name).join(' · ')),x?`${x.s}|${x.k}`:(days?'':'?'));
+    const shut=state.closed.has(d);
+    const kSel=mk('dk-'+d,`Kuchnia ${d}`,(shut?'<option value="">zamknięte</option>':'')+((!x&&!shut)?'<option value="?">nie ustalono</option>':'')+opt(PAIRS.map(p=>p.join('|')),0,v=>v.split('|').map(i=>byId[i].name).join(' · ')),x&&!shut?`${x.s}|${x.k}`:(shut?'':'?'));
     const dSel=mk('dd-'+d,`Kierowca ${d}`,opt(DRIVERS,0,i=>'🚗 '+byId[i].name),x?.d||DRIVERS[0]);
     const wSel=mk('dw-'+d,`Kelnerka ${d}`,opt(WAITERS,0,i=>byId[i].name),x?.w||WAITERS[0]);
-    const closedDay=!x;dSel.disabled=closedDay;wSel.disabled=closedDay;
+    const closedDay=shut||!x;kSel.disabled=shut;dSel.disabled=closedDay;wSel.disabled=closedDay;
     const change=()=>{
       const base=(currentDays()||new Array(n).fill(null)).slice();
-      if(kSel.value===''||kSel.value==='?')base[d-1]=null;
+      if(kSel.value===''||kSel.value==='?')base[d-1]=false;
       else{const [s,k]=kSel.value.split('|');base[d-1]={s,k,d:dSel.value,w:wSel.value}}
       state.draft=base;renderPlan();
     };
@@ -558,15 +577,22 @@ function renderDays(){
     el.appendChild(sels);box.appendChild(el);
   }
 }
+function adapt(){
+  // dopasuj istniejący grafik do zmienionych dni zamknięcia, zmieniając jak najmniej
+  const days=currentDays();if(!days)return false;
+  const base=days.map((x,i)=>state.closed.has(i+1)||!x?null:x);
+  state.draft=solve(closedArr(),base);
+  return true;
+}
 function generate(){
-  const n=nDays(),days=currentDays();
-  const closed=new Array(n).fill(false);
-  if(days)days.forEach((x,i)=>{if(x===null)closed[i]=true});
+  const closed=closedArr();
   $('genBtn').disabled=true;$('genBtn').textContent='Układam…';
   setTimeout(()=>{state.draft=solve(closed);$('genBtn').disabled=false;$('genBtn').textContent='Ułóż ponownie';renderPlan()},30);
 }
 async function savePlan(){
   if(!state.draft)return;
+  state.draft=state.draft.map((x,i)=>state.closed.has(i+1)?null:x);
+  if(state.draft.some((x,i)=>!x&&!state.closed.has(i+1))){$('planInfo').textContent='Najpierw obsadź wszystkie otwarte dni (np. przyciskiem „Ułóż ponownie”).';return}
   $('savePlan').disabled=true;$('savePlan').textContent='Zapisuję…';
   try{const r=await api('savePlan',{month:mKey(),days:state.draft});state.plan=r.plan;state.draft=null}
   catch(e){$('planInfo').textContent=e.message}
@@ -582,6 +608,8 @@ async function load(full){
     if(m!==mKey())return;
     const before=JSON.stringify(state.prefs[state.me]||null);
     state.prefs=Array.isArray(r.prefs)?{}:(r.prefs||{});state.plan=r.plan||null;
+    state.closed=new Set(r.closed||[]);(state.plan?.days||[]).forEach((x,i)=>{if(x===null)state.closed.add(i+1)});
+    renderShut();
     renderPeople();
     if(full||JSON.stringify(state.prefs[state.me]||null)!==before)loadForm();
     renderPlan();
@@ -590,7 +618,7 @@ async function load(full){
 }
 function changeMonth(delta){
   cur.m+=delta;if(cur.m<0){cur.m=11;cur.y--}if(cur.m>11){cur.m=0;cur.y++}
-  state.prefs={};state.plan=null;state.draft=null;
+  state.prefs={};state.plan=null;state.draft=null;state.closed=new Set();
   setMonthLabels();renderPeople();loadForm();renderPlan();load(true);
 }
 function tab(which){
@@ -615,7 +643,7 @@ function startApp(me){
   user=me;
   $('loginView').hidden=true;$('appView').hidden=false;
   $('whoName').textContent=me.admin?'Zalogowany: Szef':`Zalogowany: ${me.name}`;
-  $('adminBtns').hidden=!me.admin;$('manualBox').hidden=!me.admin;$('clearBox').hidden=!me.admin;$('howto').hidden=!!me.admin;
+  $('adminBtns').hidden=!me.admin;$('shutBox').hidden=!me.admin;$('manualBox').hidden=!me.admin;$('clearBox').hidden=!me.admin;$('howto').hidden=!!me.admin;
   $('howtoCal').textContent=byId[me.id]?.picksOwn?'W kalendarzu stuknij dni, w które chcesz pracować (zielone). Pracujesz tylko w zaznaczone dni.':'W kalendarzu stuknij dzień raz: chcesz pracować (zielony). Drugi raz: nie możesz (czerwony). Trzeci raz: obojętnie.';
   $('peopleTitle').textContent=me.admin?'Czyje preferencje edytujesz?':'Twoje preferencje';
   state.me=me.admin?(state.me&&byId[state.me]?state.me:null):me.id;
@@ -766,6 +794,41 @@ $('shareBtn').onclick=async()=>{
   try{await navigator.share({files:[new File([b],pdfName(),{type:'application/pdf'})],title:'Grafik '+MONTHS[cur.m]})}catch(e){}
 };
 
+
+// ---------- dni zamknięte (szef) ----------
+function renderShut(){
+  const c=$('shutCal');if(!c)return;c.innerHTML='';
+  ['pn','wt','śr','cz','pt','sb','nd'].forEach(h=>{const e=document.createElement('div');e.className='h';e.textContent=h;c.appendChild(e)});
+  for(let i=0;i<(wday(1)+6)%7;i++)c.appendChild(document.createElement('div'));
+  for(let d=1;d<=nDays();d++){
+    const b=document.createElement('button');b.id='shut-'+d;b.textContent=d;
+    const on=state.closed.has(d);
+    b.className=(isWe(d)?'we ':'')+(on?'closedOn':'');
+    b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',`${d}: ${on?'zamknięte':'otwarte'}`);
+    b.onclick=()=>toggleShut(d);
+    c.appendChild(b);
+  }
+}
+let shutBusy=false;
+async function toggleShut(d){
+  if(shutBusy)return;shutBusy=true;
+  const before=new Set(state.closed);
+  state.closed.has(d)?state.closed.delete(d):state.closed.add(d);
+  const nowClosed=state.closed.has(d);
+  renderShut();
+  try{
+    await api('setClosed',{month:mKey(),closed:[...state.closed]});
+    let msg=`${d}.${String(cur.m+1).padStart(2,'0')} ${nowClosed?'zamknięty':'znowu otwarty'}.`;
+    if(currentDays()){
+      $('shutStatus').textContent=msg+' Dopasowuję grafik…';$('shutStatus').className='status';
+      await new Promise(r=>setTimeout(r,30));
+      adapt();
+      msg+=' Grafik dopasowany: zmienione kratki są obrysowane. Sprawdź i kliknij „Zapisz grafik”.';
+    }
+    $('shutStatus').textContent=msg;$('shutStatus').className='status ok';
+  }catch(e){state.closed=before;$('shutStatus').textContent=e.message;$('shutStatus').className='status err'}
+  finally{shutBusy=false;renderShut();renderPlan();if(state.me)renderCal()}
+}
 setMonthLabels();
 api('me').then(r=>r.me?startApp(r.me):showLogin()).catch(()=>showLogin());
 </script>

@@ -41,9 +41,9 @@ function numOrNull($v): ?int { if ($v === null || $v === '') return null; return
 
 function load(string $m): array {
   $f = DATA_DIR . "/$m.php";
-  if (!is_file($f)) return ['prefs' => new stdClass(), 'plan' => null];
+  if (!is_file($f)) return ['prefs' => new stdClass(), 'plan' => null, 'closed' => []];
   $d = json_decode(substr((string)file_get_contents($f), strlen(GUARD)), true) ?: [];
-  return ['prefs' => $d['prefs'] ?? new stdClass(), 'plan' => $d['plan'] ?? null];
+  return ['prefs' => $d['prefs'] ?? new stdClass(), 'plan' => $d['plan'] ?? null, 'closed' => $d['closed'] ?? []];
 }
 // zapis pod blokadą pliku, żeby dwie osoby naraz nie nadpisały sobie danych
 function update(string $m, callable $fn): array {
@@ -143,6 +143,12 @@ switch ($action) {
     $plan = ['month' => $month, 'days' => $clean, 'savedAt' => (int)round(microtime(true) * 1000)];
     update($month, function ($d) use ($plan) { $d['plan'] = $plan; return $d; });
     out(['ok' => true, 'plan' => $plan]);
+
+  case 'setClosed':
+    needAdmin(); $month = monthOk($in['month'] ?? '');
+    $closed = dayList($in['closed'] ?? [], daysIn($month));
+    update($month, function ($d) use ($closed) { $d['closed'] = $closed; return $d; });
+    out(['ok' => true, 'closed' => $closed]);
 
   case 'clearMonth':
     needAdmin(); $month = monthOk($in['month'] ?? '');
