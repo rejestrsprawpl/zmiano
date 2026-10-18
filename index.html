@@ -46,10 +46,11 @@ nav .in{display:flex;justify-content:space-between;align-items:center;padding-bl
 .logo i{font-style:normal;display:inline-block;width:.32em;height:.32em;border-radius:50%;background:var(--tape);margin-left:2px;vertical-align:baseline}
 nav a.k{font-weight:600;text-decoration:none;border-bottom:2px solid var(--tape)}
 
-.hero{padding-block:28px 88px}
-.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px 64px;align-items:center}
+.hero{padding-block:16px 72px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px 56px;align-items:start}
+.hero-copy{padding-top:12px}
 .hero-copy{display:flex;flex-direction:column;gap:24px;min-width:0}
-.hero h1{font:900 clamp(56px,6.4vw,100px)/.88 var(--f-display);letter-spacing:-.005em;text-wrap:balance}
+.hero h1{font:900 clamp(50px,min(6.4vw,11.5vh),100px)/.88 var(--f-display);letter-spacing:-.005em;text-wrap:balance}
 .hero-copy>p{font-size:clamp(18px,1.5vw,20px);color:var(--muted);max-width:40ch}
 .hero-copy .note{font-size:14px;color:var(--muted)}
 
@@ -374,6 +375,20 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
     n++;
   });
   document.getElementById('mgrid').innerHTML=g;
+
+  // na komputerze telefony z podpisami muszą zmieścić się w pierwszym ekranie
+  const phonesEl=document.getElementById('phones'),wide=matchMedia('(min-width:1181px)');
+  function fit(){
+    if(!wide.matches){phonesEl.style.removeProperty('--sc');return}
+    phonesEl.style.setProperty('--sc','.8');
+    const top=phonesEl.getBoundingClientRect().top+scrollY;
+    const caps=Math.max(...[...phonesEl.querySelectorAll('.cap')].map(c=>c.offsetHeight));
+    const room=innerHeight-top-caps-18-36-24;          // podpis, odstęp, obniżony środkowy telefon, margines
+    const sc=Math.max(.5,Math.min(.85,room/(236*17.4/9)));
+    phonesEl.style.setProperty('--sc',sc.toFixed(3));
+  }
+  fit();addEventListener('resize',fit);wide.addEventListener?.('change',fit);
+  document.fonts&&document.fonts.ready.then(fit);
 
   // jedna sekwencja: krok 1 → 2 → 3, pauza na pełnym obrazku, reset i od nowa.
   // Gra tylko wtedy, gdy telefony są na ekranie.
