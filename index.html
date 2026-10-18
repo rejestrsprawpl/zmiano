@@ -130,8 +130,8 @@ nav a.k{font-weight:600;text-decoration:none;border-bottom:2px solid var(--tape)
 .anim .step:not(.on):not(.done) .mgrid .c{background:transparent;color:transparent}
 .anim .step:not(.on):not(.done) .mstat,.anim .step:not(.on):not(.done) .msg{opacity:0;transform:translateY(10px)}
 .anim .step.on .mcal b,.anim .step.on .mgrid .c,.anim .step.on .msg{transition-delay:calc(var(--i,0)*1ms)}
-.anim .step.on .mbtn,.anim .step.on .mbtn span{transition-delay:2300ms}
-.anim .step.on .mstat{transition-delay:2200ms}
+.anim .step.on .mbtn,.anim .step.on .mbtn span{transition-delay:1550ms}
+.anim .step.on .mstat{transition-delay:1450ms}
 .anim .step.on .mgo{animation:press .5s 150ms}
 @keyframes press{40%{transform:scale(.94);background:#3c5546}}
 
@@ -275,10 +275,10 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
             <div class="bar">9:43</div>
             <div class="hd" style="border-bottom:1px solid var(--scr-line)"><b>Sushi Rzeszów</b><span>Ekipa, 9 osób</span></div>
             <div class="chat">
-              <div class="msg me" style="--i:200"><small>Ty</small>Grafik na listopad gotowy
+              <div class="msg me" style="--i:150"><small>Ty</small>Grafik na listopad gotowy
                 <div class="file"><i>PDF</i><div><b>grafik-listopad.pdf</b><span>1 strona A4</span></div></div></div>
-              <div class="msg them" style="--i:1300"><small>Julka</small>Super, mam wolne 14 tak jak chciałam!</div>
-              <div class="msg them" style="--i:2100"><small>Tomek</small>Dzięki szefie <span class="react">👍 5</span></div>
+              <div class="msg them" style="--i:800"><small>Julka</small>Super, mam wolne 14 tak jak chciałam!</div>
+              <div class="msg them" style="--i:1400"><small>Tomek</small>Dzięki szefie <span class="react">👍 5</span></div>
             </div>
             <div class="mtype">Wiadomość</div>
           </div></div></div>
@@ -367,7 +367,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   let k=0;
   for(let d=1;d<=30;d++){
     const wd=(6+d-1)%7, cls=[wd>=5?'we':'',want.includes(d)?'want':'',no.includes(d)?'no':''].join(' ');
-    const delay=(want.includes(d)||no.includes(d))?(k++)*150+200:0;
+    const delay=(want.includes(d)||no.includes(d))?(k++)*95+150:0;
     h+=`<b class="${cls}" style="--i:${delay}">${d}</b>`;
   }
   document.getElementById('mcal').innerHTML=h;
@@ -380,7 +380,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
     g+=`<span class="n">${name}</span>`;
     [...row].forEach((v,i)=>{
       const c=v==='.'?'':v;
-      g+=`<span class="c ${c}" style="--i:${c?400+(i*6+n)*28:0}">${c}</span>`;
+      g+=`<span class="c ${c}" style="--i:${c?250+(i*6+n)*17:0}">${c}</span>`;
     });
     n++;
   });
@@ -390,7 +390,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   // Gra tylko wtedy, gdy telefony są na ekranie.
   const steps=[...document.querySelectorAll('.step')],root=document.documentElement;
   if(!root.classList.contains('anim'))return;
-  const STEP=3800,HOLD=3000,sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const STEP=2700,HOLD=2200,sleep=ms=>new Promise(r=>setTimeout(r,ms));
   let visible=false,running=false;
   function reset(){
     root.classList.add('noanim');
@@ -401,7 +401,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   async function loop(){
     if(running)return;running=true;
     while(visible){
-      reset();await sleep(500);
+      reset();await sleep(350);
       for(const s of steps){
         if(!visible)break;
         s.classList.add('on');await sleep(STEP);
