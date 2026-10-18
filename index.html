@@ -135,6 +135,8 @@ nav a.k{font-weight:600;text-decoration:none;border-bottom:2px solid var(--tape)
 .anim .step.on .mgo{animation:press .5s 150ms}
 @keyframes press{40%{transform:scale(.94);background:#3c5546}}
 
+.noanim .phones *{transition:none!important;animation:none!important}
+
 /* ---------- co masz z głowy ---------- */
 section{padding-block:96px}
 .band{background:var(--band)}
@@ -218,6 +220,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 @media (max-width:380px){.pw{--sc:.52}.cap h3{font-size:22px}}
 @media (prefers-reduced-motion:reduce){.phone,.btn,.msg,.mstat,.mcal b,.mgrid>*{transition:none!important;animation:none!important}}
 </style>
+<script>if(!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("anim")</script>
 </head>
 <body>
 
@@ -245,7 +248,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
           <div class="clip" aria-hidden="true"></div>
           <div class="pw"><div class="phone" aria-hidden="true"><div class="scr">
             <div class="bar">9:41</div>
-            <div class="hd"><b>Cześć, Julka</b><span>Twoje dni na listopad</span></div>
+            <div class="hd"><b>Cześć, Julka</b><span>Wybierz, w które dni chcesz pracować, a w które nie możesz</span></div>
             <div class="mcal" id="mcal"></div>
             <div class="pin-row"><span><s style="background:var(--want)"></s>chcę pracować</span><span><s style="background:var(--no)"></s>nie mogę</span></div>
             <div class="mbtn"><span class="go">Zapisz</span><span class="done">Zapisane ✓</span></div>
@@ -383,19 +386,35 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   });
   document.getElementById('mgrid').innerHTML=g;
 
-  // jedna sekwencja: krok 1 → 2 → 3, w pętli; bez animacji przy ograniczonym ruchu
-  const steps=[...document.querySelectorAll('.step')];
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  document.documentElement.classList.add('anim');
-  let i=0;
-  const run=()=>{
-    if(i===0)steps.forEach(s=>s.classList.remove('on','done'));
-    else steps[i-1].classList.replace('on','done');
+  // jedna sekwencja: krok 1 → 2 → 3, pauza na pełnym obrazku, reset i od nowa.
+  // Gra tylko wtedy, gdy telefony są na ekranie.
+  const steps=[...document.querySelectorAll('.step')],root=document.documentElement;
+  if(!root.classList.contains('anim'))return;
+  const STEP=3800,HOLD=3000,sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  let visible=false,running=false;
+  function reset(){
+    root.classList.add('noanim');
+    steps.forEach(s=>s.classList.remove('on','done'));
     void document.body.offsetWidth;
-    steps[i].classList.add('on');
-    i=(i+1)%steps.length;
-  };
-  run();setInterval(()=>{if(i===0&&steps[2].classList.contains('on')){steps[2].classList.replace('on','done')}run()},4200);
+    root.classList.remove('noanim');
+  }
+  async function loop(){
+    if(running)return;running=true;
+    while(visible){
+      reset();await sleep(500);
+      for(const s of steps){
+        if(!visible)break;
+        s.classList.add('on');await sleep(STEP);
+        s.classList.replace('on','done');
+      }
+      if(visible)await sleep(HOLD);
+    }
+    running=false;
+  }
+  const box=document.getElementById('phones');
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(es=>{visible=es[0].isIntersecting;if(visible)loop()},{threshold:.25}).observe(box);
+  }else{visible=true;loop()}
 })();
 </script>
 </body>
