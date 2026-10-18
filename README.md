@@ -13,4 +13,9 @@ Grafik pracy dla gastronomii. Strona: https://zmiano.pl
 Oba wgrywa się jednorazowo przez FTP. Wdrożenia z Gita ich nie nadpisują.
 
 ## Wdrożenie
-Repozytorium jest podpięte pod hosting OVH (Git + webhook). Każdy push na `main` aktualizuje https://zmiano.pl.
+Każdy push na `main` uruchamia GitHub Actions (`.github/workflows/deploy.yml`), które wysyłają pliki na hosting OVH przez FTP do katalogu `zmiano/`.
+Dane FTP są w sekretach repozytorium: `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`.
+Pliki `*/config.php` i `*/data/` istnieją tylko na serwerze i nie są nadpisywane.
+
+## Prawa autorskie
+Zobacz `COPYRIGHT.md`. Wszelkie prawa zastrzeżone.
