@@ -3,207 +3,299 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Zmiano · grafik pracy dla małej gastronomii</title>
-<meta name="description" content="Pracownicy wpisują z telefonu, kiedy mogą pracować. Ty ustawiasz zasady lokalu. Zmiano układa grafik na cały miesiąc i drukuje go na kartkę A4.">
+<title>Zmiano – grafik pracy, który układa się sam</title>
+<meta name="description" content="Pracownicy wpisują z telefonu, kiedy mogą pracować. Ty klikasz „Ułóż grafik”. Gotowy grafik na cały miesiąc trafia do ekipy jako PDF. Dla małej gastronomii.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
 <style>
-/* Układ: jedna kolumna treści, hero z „kartką grafiku” po prawej; sekcje oddzielone pasami tła */
+/*
+  Koncepcja: stal kuchenna. Szyna na bony przecina hero, na niej wiszą trzy telefony = trzy kroki.
+  Kolory: stal, atrament, papier bonu, żółta taśma; kolorowe kropki dni tygodnia (jak etykiety „day dots”) tylko w ekranach.
+*/
 :root{
-  --bg:#f6f4ef; --paper:#fffdf8; --band:#ece8de; --ink:#1d2621; --muted:#5f6a63; --line:#d9d4c7;
-  --nori:#24382d; --salmon:#d9583a; --salmon-soft:#fbe1d8; --wasabi:#5f7f2c; --wasabi-soft:#e5ecd6;
-  --f-display:"Familjen Grotesk",system-ui,sans-serif;
-  --f-body:"IBM Plex Sans",system-ui,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+  --bg:#eef1f3; --band:#dde2e6; --ink:#1a2127; --muted:#56616b; --paper:#ffffff; --line:#c9d0d6;
+  --rail-a:#c4cbd1; --rail-b:#8d969e; --tape:#ffc929; --tape-ink:#1a2127;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Instrument Sans",system-ui,-apple-system,sans-serif;
+  --f-ticket:"Courier Prime","Courier New",monospace;
+  /* ekrany telefonów to „zrzuty” aplikacji – zawsze jasne */
+  --scr:#fbfaf7; --scr-ink:#1d2621; --scr-muted:#6b756f; --scr-line:#e3e0d8;
+  --s-bg:#fbe3dc; --s-fg:#d24f31; --k-bg:#e5ecd6; --k-fg:#56762a; --x-fg:#24382d;
+  --want:#2fa34a; --no:#e04848; --chat:#e7f2e3;
 }
 @media (prefers-color-scheme:dark){:root{
-  --bg:#131915; --paper:#1b221e; --band:#18201b; --ink:#e8ebe6; --muted:#9ba59e; --line:#334039;
-  --nori:#cfe0c9; --salmon:#f0866b; --salmon-soft:#3c241d; --wasabi:#a5c46b; --wasabi-soft:#252f1b; color-scheme:dark}}
+  --bg:#15191d; --band:#1d2328; --ink:#eef1f3; --muted:#9ba6af; --paper:#232a30; --line:#323b42;
+  --rail-a:#5d666e; --rail-b:#30373d; color-scheme:dark}}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 var(--f-body)}
 a{color:inherit}
-.in{max-width:1080px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
-h1,h2,h3{font-family:var(--f-display);line-height:1.08;letter-spacing:-.015em;margin:0;text-wrap:balance}
-h1{font-size:clamp(40px,5.6vw,64px);font-weight:700}
-h2{font-size:clamp(28px,3.6vw,40px);font-weight:700}
-h3{font-size:20px;font-weight:600}
-p{margin:0}
-.lead{font-size:clamp(18px,1.6vw,21px);color:var(--muted);max-width:44ch}
-.eyebrow{font:600 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--salmon)}
-.btn{display:inline-flex;align-items:center;gap:10px;font:600 16px/1 var(--f-body);text-decoration:none;padding:15px 22px;border-radius:10px;border:1.5px solid var(--nori);transition:transform .15s}
-.btn.primary{background:var(--nori);color:var(--bg)}
-.btn:hover{transform:translateY(-1px)}
-.btn:focus-visible{outline:3px solid var(--salmon);outline-offset:3px}
+.in{max-width:1160px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
+h1,h2,h3,p{margin:0}
+h2{font:800 clamp(36px,4.6vw,56px)/.98 var(--f-display);letter-spacing:.005em;text-wrap:balance}
+h3{font:700 19px/1.25 var(--f-body)}
+.btn{display:inline-flex;align-items:center;font:700 17px/1 var(--f-body);text-decoration:none;padding:17px 24px;border-radius:4px;background:var(--tape);color:var(--tape-ink);box-shadow:0 3px 0 #c99a00;transition:transform .12s,box-shadow .12s}
+.btn:hover{transform:translateY(1px);box-shadow:0 2px 0 #c99a00}
+.btn:active{transform:translateY(3px);box-shadow:none}
+.btn:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
-/* nawigacja */
-nav{padding-block:22px}
-nav .in{display:flex;justify-content:space-between;align-items:center;gap:16px}
-.logo{font:700 26px/1 var(--f-display);letter-spacing:-.02em;text-decoration:none}
-.logo span{color:var(--salmon)}
-nav .links{display:flex;gap:22px;font-size:15px}
-nav .links a{text-decoration:none;color:var(--muted)}
-nav .links a:hover{color:var(--ink)}
+/* ---------- nagłówek ---------- */
+nav .in{display:flex;justify-content:space-between;align-items:center;padding-block:22px}
+.logo{font:900 34px/1 var(--f-display);text-decoration:none;letter-spacing:.01em}
+.logo i{font-style:normal;display:inline-block;width:.32em;height:.32em;border-radius:50%;background:var(--tape);margin-left:2px;vertical-align:baseline}
+nav a.k{font-weight:600;text-decoration:none;border-bottom:2px solid var(--tape)}
 
-/* hero */
-.hero{padding-block:28px 72px}
-.hero .in{display:grid;grid-template-columns:1.05fr 1fr;gap:40px 56px;align-items:center}
-.trio{grid-column:1/-1;list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;counter-reset:none}
-.trio li{display:flex;gap:16px;align-items:flex-start;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px 20px;position:relative;min-width:0}
-.trio li:not(:last-child)::after{content:"→";position:absolute;right:-15px;top:50%;transform:translateY(-50%);font:600 18px var(--f-mono);color:var(--salmon);background:var(--bg);width:14px;text-align:center}
-.trio .no{flex:none;width:44px;height:44px;border-radius:50%;background:var(--salmon);color:#fff;display:grid;place-items:center;font:700 22px/1 var(--f-display)}
-.trio b{display:block;font:700 19px/1.2 var(--f-display);margin:2px 0 6px}
-.trio p{color:var(--muted);font-size:15px;line-height:1.45}
-.hero-cta{grid-column:1/-1}
-.gains{display:grid;grid-template-columns:1fr 1fr;gap:20px 40px}
-.gains div{display:flex;flex-direction:column;gap:8px;padding-top:16px;border-top:2px solid var(--ink)}
-.gains p{color:var(--muted)}
-.hero-copy{display:flex;flex-direction:column;gap:24px;min-width:0}
-.hero h1 em{font-style:normal;color:var(--salmon)}
-.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.cta small{color:var(--muted);font-size:14px}
+.hero{padding-block:24px 0;overflow:hidden}
+.hero-top{display:grid;grid-template-columns:1.55fr 1fr;gap:32px 56px;align-items:end}
+.hero h1{font:900 clamp(56px,7.6vw,104px)/.88 var(--f-display);letter-spacing:-.005em;text-wrap:balance}
+.hero-side{display:flex;flex-direction:column;gap:22px;padding-bottom:10px}
+.hero-side p{font-size:clamp(18px,1.6vw,20px);color:var(--muted);max-width:40ch}
+.hero-side .note{font-size:14px;color:var(--muted)}
 
-/* kartka grafiku */
-.sheet{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px 18px 14px;box-shadow:0 1px 0 var(--line),0 24px 48px -28px rgba(20,30,25,.35);transform:rotate(1.2deg);min-width:0}
-.sheet-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
-.sheet-head b{font:700 17px var(--f-display)}
-.sheet-head span{font:500 11px var(--f-mono);color:var(--muted)}
-.grid{display:grid;grid-template-columns:64px repeat(14,1fr);border-top:1px solid var(--line);border-left:1px solid var(--line);font:600 11px/1 var(--f-mono)}
-.grid div{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:26px;display:flex;align-items:center;justify-content:center;min-width:0}
-.grid .nm{justify-content:flex-start;padding-left:6px;font:600 11px var(--f-body)}
-.grid .hd{color:var(--muted);font-weight:500;font-size:10px}
-.grid .we{background:var(--band)}
-.grid .S{background:var(--salmon-soft);color:var(--salmon)}
-.grid .K{background:var(--wasabi-soft);color:var(--wasabi)}
-.grid .X{color:var(--nori)}
-.grid .no{color:var(--salmon);font-weight:500}
-.sheet-foot{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:11px;color:var(--muted)}
-.sheet-foot b{font-family:var(--f-mono)}
-.stamp{display:inline-block;margin-top:12px;font:600 11px var(--f-mono);letter-spacing:.08em;color:var(--wasabi);border:1.5px solid var(--wasabi);padding:5px 8px;border-radius:4px;transform:rotate(-2deg)}
+/* ---------- szyna na bony z telefonami ---------- */
+.pass{position:relative;margin-top:44px;padding-bottom:72px}
+.rail{position:absolute;left:0;right:0;top:0;height:22px;background:linear-gradient(var(--rail-a),var(--rail-b));box-shadow:0 2px 0 rgba(0,0,0,.12)}
+.rail::after{content:"";position:absolute;left:0;right:0;top:7px;height:2px;background:rgba(255,255,255,.35)}
+.phones{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:36px;position:relative;counter-reset:krok}
+.step{display:flex;flex-direction:column;align-items:center;gap:22px;padding-top:10px}
+.clip{width:46px;height:26px;border-radius:0 0 6px 6px;background:linear-gradient(90deg,#9aa3ab,#e3e7ea 45%,#9aa3ab);position:relative;z-index:2;margin-bottom:-14px;box-shadow:0 2px 3px rgba(0,0,0,.25)}
+.phone{width:100%;max-width:236px;aspect-ratio:9/17.4;border-radius:38px;background:#151a1e;padding:9px;box-shadow:0 30px 50px -24px rgba(10,20,30,.55),inset 0 0 0 1.5px #3b444b;transform-origin:50% -20px;transition:transform .5s cubic-bezier(.3,1.4,.5,1)}
+.step:nth-child(1) .phone{transform:rotate(-2.2deg)}
+.step:nth-child(2) .phone{transform:rotate(1.4deg)}
+.step:nth-child(3) .phone{transform:rotate(-1deg)}
+.step.on .phone{transform:rotate(0) translateY(-6px) scale(1.02)}
+.scr{height:100%;border-radius:30px;background:var(--scr);color:var(--scr-ink);overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.3;position:relative}
+.scr .bar{height:30px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font:600 11px var(--f-body)}
+.scr .bar::after{content:"";width:16px;height:8px;border:1.5px solid currentColor;border-radius:2px}
+.scr .hd{padding:6px 16px 10px;display:flex;flex-direction:column;gap:2px}
+.scr .hd b{font:700 16px/1.15 var(--f-body)}
+.scr .hd span{color:var(--scr-muted);font-size:11px}
+.cap{text-align:center;max-width:280px;display:flex;flex-direction:column;gap:6px}
+.cap h3{font:800 28px/1 var(--f-display);letter-spacing:.01em}
+.cap h3::before{counter-increment:krok;content:counter(krok);display:inline-grid;place-items:center;width:34px;height:34px;margin-right:10px;border-radius:50%;background:var(--tape);color:var(--tape-ink);font:900 20px/1 var(--f-display);vertical-align:3px}
+.cap p{color:var(--muted);font-size:15.5px}
 
-/* sekcje */
-section{padding-block:80px}
+/* ekran 1: kalendarz pracownika */
+.mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 14px}
+.mcal i{font-style:normal;text-align:center;font-size:9px;color:var(--scr-muted);padding-bottom:2px}
+.mcal b{aspect-ratio:1;display:grid;place-items:center;font:600 11px var(--f-body);border-radius:7px;background:#fff;border:1px solid var(--scr-line);transition:background .25s,color .25s,border-color .25s,transform .25s}
+.mcal b.we{background:#f1efe9}
+.pin-row{margin:12px 14px 0;display:flex;gap:10px;font-size:10.5px;color:var(--scr-muted)}
+.pin-row s{text-decoration:none;display:inline-block;width:9px;height:9px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.mbtn{margin:auto 14px 18px;height:40px;border-radius:12px;background:#24382d;color:#fff;display:grid;place-items:center;font:600 13px var(--f-body);position:relative;transition:background .3s}
+.mbtn span{transition:opacity .2s}
+.mbtn .done{position:absolute;opacity:0}
+
+/* ekran 2: szef układa grafik */
+.mgrid{margin:4px 12px 0;display:grid;grid-template-columns:38px repeat(10,1fr);border-top:1px solid var(--scr-line);border-left:1px solid var(--scr-line)}
+.mgrid > *{height:21px;border-right:1px solid var(--scr-line);border-bottom:1px solid var(--scr-line);display:grid;place-items:center;font:700 9px var(--f-body);transition:background .2s,color .2s}
+.mgrid .n{justify-content:start;padding-left:4px;font-weight:600;font-size:8.5px;place-items:center start}
+.mgrid .h{font-weight:500;color:var(--scr-muted);font-size:8px}
+.mgrid .c{color:transparent}
+.mgo{margin:14px 12px 0;height:40px;border-radius:12px;background:#24382d;color:#fff;display:grid;place-items:center;font:600 13px var(--f-body);transition:transform .15s,background .3s}
+.mstat{margin:12px 12px 0;padding:9px 10px;border-radius:10px;background:#fff;border:1px solid var(--scr-line);display:flex;gap:8px;align-items:center;font-size:11px;opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
+.mstat i{font-style:normal;width:18px;height:18px;border-radius:50%;background:var(--want);color:#fff;display:grid;place-items:center;font-size:11px;flex:none}
+
+/* ekran 3: czat ekipy */
+.chat{flex:1;background:var(--chat);padding:12px 10px;display:flex;flex-direction:column;gap:8px;justify-content:flex-end}
+.msg{max-width:84%;padding:8px 10px;border-radius:12px;background:#fff;box-shadow:0 1px 0 rgba(0,0,0,.06);font-size:11.5px;opacity:0;transform:translateY(10px);transition:opacity .35s,transform .35s}
+.msg small{display:block;font-size:9px;color:var(--scr-muted);margin-bottom:2px;font-weight:600}
+.msg.me{align-self:flex-end;background:#d7f2c8;border-bottom-right-radius:4px}
+.msg.them{border-bottom-left-radius:4px}
+.file{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.7);border-radius:8px;padding:7px;margin-top:5px}
+.file i{font-style:normal;width:28px;height:34px;border-radius:4px;background:#e04848;color:#fff;font:700 8px var(--f-body);display:grid;place-items:center;flex:none}
+.file b{display:block;font-size:11px}
+.file span{font-size:9.5px;color:var(--scr-muted)}
+.react{display:inline-block;margin-top:4px;font-size:10px;background:#fff;border-radius:10px;padding:1px 6px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.mtype{height:38px;flex:none;background:#f4f3ef;border-top:1px solid var(--scr-line);display:flex;align-items:center;padding:0 12px;color:var(--scr-muted);font-size:11px}
+
+/* stan końcowy (bez JS albo przy ograniczonym ruchu) */
+.mcal b.want{background:var(--want);border-color:var(--want);color:#fff}
+.mcal b.no{background:var(--no);border-color:var(--no);color:#fff}
+.mgrid .c.S{background:var(--s-bg);color:var(--s-fg)}
+.mgrid .c.K{background:var(--k-bg);color:var(--k-fg)}
+.mgrid .c.X{color:var(--x-fg)}
+.mbtn{background:#2fa34a}.mbtn .go{opacity:0}.mbtn .done{opacity:1}
+.mstat,.msg{opacity:1;transform:none}
+/* animacja: JS dodaje .anim do <html>, a .on do aktywnego kroku */
+.anim .step:not(.on):not(.done) .mcal b.want,.anim .step:not(.on):not(.done) .mcal b.no{background:#fff;border-color:var(--scr-line);color:inherit}
+.anim .step:not(.on):not(.done) .mcal b.we.want,.anim .step:not(.on):not(.done) .mcal b.we.no{background:#f1efe9}
+.anim .step:not(.on):not(.done) .mbtn{background:#24382d}
+.anim .step:not(.on):not(.done) .mbtn .go{opacity:1}.anim .step:not(.on):not(.done) .mbtn .done{opacity:0}
+.anim .step:not(.on):not(.done) .mgrid .c{background:transparent;color:transparent}
+.anim .step:not(.on):not(.done) .mstat,.anim .step:not(.on):not(.done) .msg{opacity:0;transform:translateY(10px)}
+.anim .step.on .mcal b,.anim .step.on .mgrid .c,.anim .step.on .msg{transition-delay:calc(var(--i,0)*1ms)}
+.anim .step.on .mbtn,.anim .step.on .mbtn span{transition-delay:2300ms}
+.anim .step.on .mstat{transition-delay:2200ms}
+.anim .step.on .mgo{animation:press .5s 150ms}
+@keyframes press{40%{transform:scale(.94);background:#3c5546}}
+
+/* ---------- co masz z głowy ---------- */
+section{padding-block:96px}
 .band{background:var(--band)}
-.sec-head{display:flex;flex-direction:column;gap:12px;margin-bottom:40px;max-width:640px}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;counter-reset:s}
-.step{display:flex;flex-direction:column;gap:10px;padding-top:18px;border-top:2px solid var(--ink)}
-.step::before{counter-increment:s;content:"0" counter(s);font:600 13px var(--f-mono);color:var(--salmon)}
-.step p{color:var(--muted)}
+.head{display:flex;flex-direction:column;gap:16px;max-width:720px;margin-bottom:48px}
+.head p{color:var(--muted);font-size:19px;max-width:56ch}
+.gains{display:grid;grid-template-columns:repeat(4,1fr);gap:32px}
+.gains div{display:flex;flex-direction:column;gap:10px;border-top:4px solid var(--ink);padding-top:18px}
+.gains p{color:var(--muted);font-size:16px}
 
-.rules{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
-.rule-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.rule-list li{display:flex;gap:14px;align-items:baseline;padding:16px 0;border-bottom:1px solid var(--line)}
-.rule-list li:first-child{border-top:1px solid var(--line)}
-.rule-list code{font:600 13px var(--f-mono);background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:3px 7px;white-space:nowrap}
-.rule-list span{color:var(--muted)}
+/* ---------- zasady jako wydrukowany bon ---------- */
+.rules{display:grid;grid-template-columns:1fr 420px;gap:64px;align-items:start}
+.ticket{background:#fff;color:#1a1a1a;font:400 15px/1.55 var(--f-ticket);padding:28px 26px 34px;position:relative;box-shadow:0 18px 30px -20px rgba(0,0,0,.4);transform:rotate(.8deg);
+  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/16px 100%;mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/16px 100%}
+.ticket .t-h{text-align:center;font-weight:700;font-size:17px;border-bottom:1.5px dashed #999;padding-bottom:12px;margin-bottom:12px}
+.ticket .t-h small{display:block;font-weight:400;font-size:13px}
+.ticket ol{margin:0;padding:0;list-style:none;counter-reset:r}
+.ticket li{display:grid;grid-template-columns:30px 1fr;padding:6px 0}
+.ticket li::before{counter-increment:r;content:counter(r) ".";font-weight:700}
+.ticket .t-f{border-top:1.5px dashed #999;margin-top:12px;padding-top:12px;text-align:center;font-size:13px}
 
-.compare{width:100%;border-collapse:collapse;font-size:16px}
-.compare th,.compare td{text-align:left;padding:16px 14px;border-bottom:1px solid var(--line);vertical-align:top}
-.compare thead th{font:600 13px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.compare thead th:last-child{color:var(--salmon)}
-.compare td:first-child{font-weight:600;width:28%}
-.compare td:nth-child(2){color:var(--muted)}
-.compare td:last-child{background:var(--paper)}
+/* ---------- porównanie ---------- */
 .tw{overflow-x:auto}
+.compare{width:100%;border-collapse:collapse;font-size:16.5px;min-width:620px}
+.compare th,.compare td{text-align:left;padding:18px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+.compare thead th{font:800 24px/1 var(--f-display);padding-bottom:14px}
+.compare thead th:last-child{background:var(--tape);color:var(--tape-ink)}
+.compare td:first-child{font-weight:600;width:24%}
+.compare td:nth-child(2){color:var(--muted)}
+.compare td:last-child{background:var(--paper);font-weight:500}
 
-.who{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.who div{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:6px}
-.who b{font:600 18px var(--f-display)}
-.who span{color:var(--muted);font-size:15px}
-
-.contact{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:center}
-.contact-box{background:var(--nori);color:var(--bg);border-radius:14px;padding:32px;display:flex;flex-direction:column;gap:14px}
-.contact-box .mail{font:600 clamp(20px,2.4vw,26px) var(--f-mono);word-break:break-all}
-.contact-box p{opacity:.8;font-size:15px}
-.contact-box .btn{border-color:var(--bg);background:var(--bg);color:var(--nori);align-self:flex-start}
-
-footer{padding-block:36px;font-size:14px;color:var(--muted);border-top:1px solid var(--line)}
+/* ---------- dla kogo + kontakt ---------- */
+.who{display:flex;flex-wrap:wrap;gap:12px 14px;margin-top:8px}
+.who span{font:800 clamp(28px,3.2vw,40px)/1.05 var(--f-display);padding:6px 14px;border:2px solid var(--ink);border-radius:999px}
+.contact{background:var(--tape);color:var(--tape-ink);padding-block:88px}
+.contact .in{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center}
+.contact h2{font-size:clamp(44px,6vw,80px)}
+.contact p{font-size:18px;max-width:46ch}
+.contact .box{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.contact .mail{font:900 clamp(30px,3.6vw,46px)/1 var(--f-display);word-break:break-all;text-decoration:none;border-bottom:4px solid var(--tape-ink)}
+.contact .small{font-size:14px;opacity:.75}
+footer{padding-block:32px;font-size:14px;color:var(--muted)}
 footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 
-@media (max-width:860px){
-  .hero .in,.rules,.contact{grid-template-columns:1fr;gap:40px}
-  .steps,.trio,.gains{grid-template-columns:1fr}
-  .hero-copy{order:1}.trio{order:2}.hero-cta{order:3}.sheet{order:4}
-  .trio li:not(:last-child)::after{content:"↓";right:auto;left:50%;top:auto;bottom:-15px;transform:translateX(-50%)}
-  .who{grid-template-columns:1fr 1fr}
-  nav .links{display:none}
-  section{padding-block:56px}
-  .sheet{transform:none}
+/* ---------- telefon / wąskie ekrany ---------- */
+@media (max-width:900px){
+  .hero-top,.rules,.contact .in{grid-template-columns:1fr}
+  .gains{grid-template-columns:1fr 1fr}
+  section{padding-block:64px}
+  .rules .ticket{max-width:440px}
 }
-@media (max-width:420px){.who{grid-template-columns:1fr}.grid{grid-template-columns:52px repeat(14,1fr)}}
-@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+@media (max-width:720px){
+  .pass{margin-top:40px;padding-bottom:48px}
+  .phones{grid-template-columns:repeat(3,78%);gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 11% 8px;margin:0 calc(-1 * max(20px,env(safe-area-inset-left)));scrollbar-width:none}
+  .phones::-webkit-scrollbar{display:none}
+  .step{scroll-snap-align:center}
+  .gains{grid-template-columns:1fr}
+  .swipe{display:block!important}
+}
+.swipe{display:none;text-align:center;color:var(--muted);font-size:14px;margin-top:6px}
+@media (prefers-reduced-motion:reduce){.phone,.btn,.msg,.mstat,.mcal b,.mgrid>*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 
 <nav><div class="in">
-  <a class="logo" href="/">zmiano<span>.</span></a>
-  <div class="links">
-    <a href="#jak">Jak to działa</a>
-    <a href="#zasady">Zasady lokalu</a>
-    <a href="#porownanie">Porównanie</a>
-    <a href="#kontakt">Kontakt</a>
-  </div>
+  <a class="logo" href="/" aria-label="Zmiano – strona główna">zmiano<i></i></a>
+  <a class="k" href="#kontakt">Kontakt</a>
 </div></nav>
 
-<header class="hero"><div class="in">
-  <div class="hero-copy">
-    <p class="eyebrow">Grafik pracy dla gastronomii</p>
-    <h1>Grafik na cały miesiąc <em>układa się sam.</em></h1>
-    <p class="lead">Koniec z wieczorem nad kartką i SMS-ami „kto może w sobotę?”. Zasady lokalu ustawiasz raz, a każdy kolejny grafik robi się w kilka minut.</p>
+<header class="hero">
+  <div class="in hero-top">
+    <h1>Grafik na cały miesiąc układa się sam</h1>
+    <div class="hero-side">
+      <p>Koniec z wieczorem nad kartką i SMS-ami „kto może w sobotę?”. Zasady lokalu ustawiasz raz, a każdy kolejny grafik robi się w kilka minut.</p>
+      <div><a class="btn" href="#kontakt">Chcę grafik dla mojego lokalu</a></div>
+      <span class="note">Dla lokali od 5 do 20 osób. Wdrożenie robimy za Ciebie.</span>
+    </div>
   </div>
-  <div class="sheet" aria-label="Przykładowy grafik ułożony przez Zmiano">
-    <div class="sheet-head"><b>Grafik · listopad</b><span>1–14 · przykład</span></div>
-    <div class="grid" id="demo"></div>
-    <div class="sheet-foot"><span><b>S</b> sushi</span><span><b>K</b> kuchnia</span><span><b>X</b> kierowca / kelnerka</span><span><b style="color:var(--salmon)">✕</b> nie może</span></div>
-    <span class="stamp">✓ MAX 4 DNI Z RZĘDU · KAŻDA ZMIANA OBSADZONA</span>
-  </div>
-  <ol class="trio" aria-label="Zmiano w trzech krokach">
-    <li><span class="no">1</span><div><b>Ludzie sami wpisują, kiedy mogą</b><p>Z telefonu: imię i PIN. Ty niczego nie zbierasz.</p></div></li>
-    <li><span class="no">2</span><div><b>Klikasz „Ułóż grafik”</b><p>Cały miesiąc obsadzony według zasad lokalu w kilka sekund.</p></div></li>
-    <li><span class="no">3</span><div><b>Wysyłasz gotowy grafik</b><p>Każdy widzi go w telefonie, a PDF idzie na grupę.</p></div></li>
-  </ol>
-  <div class="cta hero-cta">
-    <a class="btn primary" href="#kontakt">Chcę grafik dla mojego lokalu</a>
-    <small>Wdrożenie robimy za Ciebie</small>
-  </div>
-</div></header>
 
-<section id="jak" class="band"><div class="in">
-  <div class="sec-head">
-    <p class="eyebrow">Co masz z głowy</p>
+  <div class="pass">
+    <div class="rail" aria-hidden="true"></div>
+    <div class="in">
+      <ol class="phones" id="phones">
+        <!-- krok 1 -->
+        <li class="step">
+          <div class="clip" aria-hidden="true"></div>
+          <div class="phone" aria-hidden="true"><div class="scr">
+            <div class="bar">9:41</div>
+            <div class="hd"><b>Cześć, Zuzia</b><span>Twoje dni na listopad</span></div>
+            <div class="mcal" id="mcal"></div>
+            <div class="pin-row"><span><s style="background:var(--want)"></s>chcę pracować</span><span><s style="background:var(--no)"></s>nie mogę</span></div>
+            <div class="mbtn"><span class="go">Zapisz</span><span class="done">Zapisane ✓</span></div>
+          </div></div>
+          <div class="cap"><h3>Ludzie sami wpisują, kiedy mogą</h3><p>Z telefonu, imieniem i PIN-em. Bez kont, maili i aplikacji. Ty niczego nie zbierasz.</p></div>
+        </li>
+        <!-- krok 2 -->
+        <li class="step">
+          <div class="clip" aria-hidden="true"></div>
+          <div class="phone" aria-hidden="true"><div class="scr">
+            <div class="bar">9:42</div>
+            <div class="hd"><b>Grafik na listopad</b><span>Wpisało 9 z 9 osób</span></div>
+            <div class="mgo">Ułóż grafik</div>
+            <div class="mgrid" id="mgrid"></div>
+            <div class="mstat"><i>✓</i><span><b>30 z 30 dni obsadzonych</b><br>nikt nie ma więcej niż 4 dni z rzędu</span></div>
+          </div></div>
+          <div class="cap"><h3>Klikasz „Ułóż grafik”</h3><p>Cały miesiąc obsadzony według zasad Twojego lokalu w kilka sekund. Poprawki stuknięciem w kratkę.</p></div>
+        </li>
+        <!-- krok 3 -->
+        <li class="step">
+          <div class="clip" aria-hidden="true"></div>
+          <div class="phone" aria-hidden="true"><div class="scr">
+            <div class="bar">9:43</div>
+            <div class="hd" style="border-bottom:1px solid var(--scr-line)"><b>Ekipa Nadarzyn</b><span>9 osób</span></div>
+            <div class="chat">
+              <div class="msg me" style="--i:200"><small>Ty</small>Grafik na listopad gotowy
+                <div class="file"><i>PDF</i><div><b>grafik-listopad.pdf</b><span>1 strona A4</span></div></div></div>
+              <div class="msg them" style="--i:1300"><small>Marysia</small>Super, mam wolne 14 tak jak chciałam!</div>
+              <div class="msg them" style="--i:2100"><small>Bartek</small>Dzięki szefie <span class="react">👍 5</span></div>
+            </div>
+            <div class="mtype">Wiadomość</div>
+          </div></div>
+          <div class="cap"><h3>Wysyłasz gotowy grafik</h3><p>Każdy widzi swoje zmiany w telefonie, a PDF w formacie A4 idzie na grupę.</p></div>
+        </li>
+      </ol>
+      <p class="swipe">Przesuń w bok, żeby zobaczyć kolejne kroki</p>
+    </div>
+  </div>
+</header>
+
+<section class="band"><div class="in">
+  <div class="head">
     <h2>Planowanie grafiku przestaje być Twoim problemem</h2>
   </div>
   <div class="gains">
     <div><h3>Nie zbierasz dyspozycji</h3><p>Ustawiasz termin, a Zmiano pokazuje, kto jeszcze nie wpisał, i daje gotowe przypomnienie do wysłania.</p></div>
     <div><h3>Nie pilnujesz zasad w głowie</h3><p>Kto z kim, kto ile dni, nikt więcej niż 4 dni z rzędu. Wpisujemy to raz, a każdy grafik to uwzględnia.</p></div>
     <div><h3>Nie rozstrzygasz, kto ma wolne</h3><p>Grafik nie ma ulubieńców i nie liczy, kto pierwszy wpisał. Gdy czegoś nie da się spełnić, widzisz co i dlaczego.</p></div>
-    <div><h3>Zmiany w ostatniej chwili bez przeliczania</h3><p>Lokal zamknięty w czwartek? Zaznaczasz dzień, a grafik dopasowuje się sam, ruszając jak najmniej.</p></div>
+    <div><h3>Zmiany w ostatniej chwili</h3><p>Lokal zamknięty w czwartek? Zaznaczasz dzień, a grafik dopasowuje się sam, ruszając jak najmniej.</p></div>
   </div>
 </div></section>
 
-<section id="zasady"><div class="in rules">
-  <div class="sec-head" style="margin:0">
-    <p class="eyebrow">Zasady lokalu</p>
+<section><div class="in rules">
+  <div class="head" style="margin:0">
     <h2>Rozumie, jak naprawdę działa Twoja zmiana</h2>
-    <p class="lead">Duże systemy znają stanowiska i godziny. W małym lokalu liczy się, kto z kim może stanąć na zmianie. Takie zasady wpisujemy do Zmiano przy wdrożeniu.</p>
+    <p>Duże systemy znają stanowiska i godziny. W małym lokalu liczy się, kto z kim może stanąć na zmianie. Takie zasady wpisujemy do Zmiano przy wdrożeniu, tak jak opowiesz je nam przy kawie.</p>
   </div>
-  <ul class="rule-list">
-    <li><code>obsada</code><span>Na każdej zmianie: sushi master, kucharz, kierowca i kelnerka.</span></li>
-    <li><code>role</code><span>Ania robi tylko sushi, Tomek sushi i kuchnię. Gdy są razem, Tomek idzie na kuchnię.</span></li>
-    <li><code>limit</code><span>Nikt nie pracuje więcej niż 4 dni z rzędu.</span></li>
-    <li><code>etat</code><span>Kuba chce 24 dni, Ola 6–8, a szef sushi sam wybiera swoje 3 dni.</span></li>
-    <li><code>stałe</code><span>Kierowca nie jeździ w soboty.</span></li>
-    <li><code>równo</code><span>Dwie kelnerki dzielą miesiąc po połowie.</span></li>
-  </ul>
+  <div class="ticket" aria-label="Przykładowe zasady lokalu">
+    <div class="t-h">ZASADY LOKALU<small>przykład z sushi baru</small></div>
+    <ol>
+      <li>Na każdej zmianie: sushi, kuchnia, kierowca, kelnerka.</li>
+      <li>Ania robi tylko sushi. Tomek sushi i kuchnię. Razem? Tomek na kuchnię.</li>
+      <li>Nikt nie pracuje więcej niż 4 dni z rzędu.</li>
+      <li>Kuba chce 24 dni, Ola 6–8.</li>
+      <li>Szef sushi sam wybiera swoje 3 dni.</li>
+      <li>Kierowca nie jeździ w soboty.</li>
+      <li>Dwie kelnerki dzielą miesiąc po połowie.</li>
+    </ol>
+    <div class="t-f">Grafik ułożony w 1,2 s</div>
+  </div>
 </div></section>
 
-<section id="porownanie" class="band"><div class="in">
-  <div class="sec-head">
-    <p class="eyebrow">Porównanie</p>
-    <h2>Zrobione dla lokalu na 5–20 osób</h2>
-    <p class="lead">Programy kadrowe są świetne dla sieci i dużych firm. Mały lokal potrzebuje głównie jednego: żeby grafik był gotowy i nikt się w nim nie gubił.</p>
+<section class="band"><div class="in">
+  <div class="head">
+    <h2>Zrobione dla lokalu, a nie dla korporacji</h2>
+    <p>Programy kadrowe są świetne dla sieci i dużych firm. Mały lokal potrzebuje jednego: żeby grafik był gotowy i nikt się w nim nie gubił.</p>
   </div>
   <div class="tw">
     <table class="compare">
@@ -213,67 +305,78 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
         <tr><td>Konfiguracja</td><td>Sam ustawiasz stanowiska, szablony i reguły</td><td>Opowiadasz, jak pracujecie, a my ustawiamy za Ciebie</td></tr>
         <tr><td>Zasady „kto z kim”</td><td>Zwykle tylko stanowiska i kwalifikacje</td><td>Pary, role zależne od składu, stałe wolne dni</td></tr>
         <tr><td>Cena</td><td>Za każdego pracownika, co miesiąc</td><td>Jedna stała cena za lokal</td></tr>
-        <tr><td>Dodatki</td><td>Rejestracja czasu, urlopy, kadry, raporty</td><td>Tylko grafik, za to porządnie, z wydrukiem A4</td></tr>
+        <tr><td>Dodatki</td><td>Rejestracja czasu, urlopy, kadry, raporty</td><td>Tylko grafik, za to porządnie, z PDF-em A4</td></tr>
       </tbody>
     </table>
   </div>
 </div></section>
 
 <section><div class="in">
-  <div class="sec-head">
-    <p class="eyebrow">Dla kogo</p>
-    <h2>Dla lokali, w których grafik robi się „na kartce”</h2>
-  </div>
-  <div class="who">
-    <div><b>Sushi i ramen</b><span>Sushi masterzy, kuchnia, dowóz</span></div>
-    <div><b>Pizzerie</b><span>Piec, kuchnia, kierowcy, sala</span></div>
-    <div><b>Bistro i kawiarnie</b><span>Bar, kuchnia, sala, weekendy</span></div>
-    <div><b>Food trucki</b><span>Małe ekipy, zmienne lokalizacje</span></div>
-  </div>
+  <div class="head" style="margin-bottom:24px"><h2>Dla lokali, w których grafik robi się na kartce</h2></div>
+  <div class="who"><span>sushi</span><span>pizzerie</span><span>bistro</span><span>kawiarnie</span><span>food trucki</span><span>bary z dowozem</span></div>
 </div></section>
 
-<section id="kontakt" class="band"><div class="in contact">
-  <div class="sec-head" style="margin:0">
-    <p class="eyebrow">Start</p>
+<section class="contact" id="kontakt"><div class="in">
+  <div style="display:flex;flex-direction:column;gap:18px">
     <h2>Pierwszy grafik ustawiamy razem</h2>
-    <p class="lead">Napisz, ile osób pracuje u Ciebie i jakie macie zasady. Wdrożymy lokal, przygotujemy PIN-y i gotową wiadomość dla pracowników. Pierwszy miesiąc testujesz na żywym grafiku.</p>
+    <p>Napisz, ile osób u Ciebie pracuje i jakie macie zasady. Wdrożymy lokal, przygotujemy PIN-y i gotową wiadomość dla pracowników. Pierwszy miesiąc sprawdzasz na żywym grafiku.</p>
   </div>
-  <div class="contact-box">
-    <p>Napisz do nas</p>
-    <span class="mail" id="mail">kontakt@zmiano.pl</span>
-    <a class="btn" href="mailto:kontakt@zmiano.pl?subject=Grafik%20dla%20mojego%20lokalu">Napisz e-mail</a>
-    <p>Pracujesz już w lokalu na Zmiano? Wejdź przez link, który dostałeś od szefa.</p>
+  <div class="box">
+    <a class="mail" href="mailto:kontakt@zmiano.pl?subject=Grafik%20dla%20mojego%20lokalu">kontakt@zmiano.pl</a>
+    <span class="small">Pracujesz już w lokalu na Zmiano? Wejdź przez link, który dostałeś od szefa.</span>
   </div>
 </div></section>
 
-<footer><div class="in">
-  <span>© 2026 Zmiano</span>
-  <span>Grafik pracy dla małej gastronomii</span>
-</div></footer>
+<footer><div class="in"><span>© 2026 Zmiano</span><span>Grafik pracy dla małej gastronomii</span></div></footer>
 
 <script>
-// przykładowa kartka w hero: 14 dni, każdy dzień = sushi, kuchnia, kierowca, kelnerka
 (function(){
-  const plan=[ // [sushi, kuchnia, kierowca, kelnerka]
-    ['Ania','Tomek','Kuba','Zosia'],['Ania','Marek','Kuba','Ewa'],['Tomek','Marek','Kuba','Zosia'],
-    ['Tomek','Marek','Ola','Zosia'],['Ania','Tomek','Kuba','Ewa'],['Tomek','Marek','Kuba','Zosia'],
-    ['Ania','Marek','Ola','Ewa'],['Ania','Tomek','Kuba','Ewa'],['Tomek','Marek','Kuba','Zosia'],
-    ['Ania','Marek','Ola','Zosia'],['Tomek','Marek','Kuba','Ewa'],['Ania','Tomek','Kuba','Zosia'],
-    ['Tomek','Marek','Ola','Ewa'],['Ania','Marek','Ola','Ewa']];
-  const people=['Ania','Tomek','Marek','Kuba','Ola','Zosia','Ewa'];
-  const blocked={Kuba:[4]};
-  const we=i=>[0,6,7,13].includes(i);
-  const g=document.getElementById('demo');let h='<div class="nm hd"></div>';
-  plan.forEach((_,i)=>{h+=`<div class="hd${we(i)?' we':''}">${i+1}</div>`});
-  people.forEach(n=>{
-    h+=`<div class="nm">${n}</div>`;
-    plan.forEach((d,i)=>{
-      const v=d[0]===n?'S':d[1]===n?'K':(d[2]===n||d[3]===n)?'X':(blocked[n]||[]).includes(i+1)?'✕':'';
-      const cls=v==='S'?'S':v==='K'?'K':v==='X'?'X':v==='✕'?'no':'';
-      h+=`<div class="${cls}${we(i)?' we':''}">${v}</div>`;
+  // ekran 1: kalendarz listopada (1.11 = niedziela)
+  const want=[3,4,5,10,11,12,17,18,24,25,26],no=[14,15,21];
+  let h='';['pn','wt','śr','cz','pt','sb','nd'].forEach(d=>h+=`<i>${d}</i>`);
+  for(let i=0;i<6;i++)h+='<span></span>';
+  let k=0;
+  for(let d=1;d<=30;d++){
+    const wd=(6+d-1)%7, cls=[wd>=5?'we':'',want.includes(d)?'want':'',no.includes(d)?'no':''].join(' ');
+    const delay=(want.includes(d)||no.includes(d))?(k++)*150+200:0;
+    h+=`<b class="${cls}" style="--i:${delay}">${d}</b>`;
+  }
+  document.getElementById('mcal').innerHTML=h;
+
+  // ekran 2: grafik 6 osób × 10 dni
+  const plan=[['Ania','S.S.SS.S.S'],['Tomek','KSK.K.KSK.'],['Marek','.K.KSK.K.K'],['Kuba','XX.XXX.XX.'],['Ola','..X...X..X'],['Zosia','X.XX.X.X.X']];
+  let g='<span></span>';for(let d=1;d<=10;d++)g+=`<span class="h">${d}</span>`;
+  let n=0;
+  plan.forEach(([name,row])=>{
+    g+=`<span class="n">${name}</span>`;
+    [...row].forEach((v,i)=>{
+      const c=v==='.'?'':v;
+      g+=`<span class="c ${c}" style="--i:${c?400+(i*6+n)*28:0}">${c}</span>`;
     });
+    n++;
   });
-  g.innerHTML=h;
+  document.getElementById('mgrid').innerHTML=g;
+
+  // jedna sekwencja: krok 1 → 2 → 3, w pętli; bez animacji przy ograniczonym ruchu
+  const steps=[...document.querySelectorAll('.step')];
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  document.documentElement.classList.add('anim');
+  let i=0,touched=false;
+  const box=document.getElementById('phones');
+  box.addEventListener('touchstart',()=>{touched=true},{passive:true});
+  const run=()=>{
+    if(i===0)steps.forEach(s=>s.classList.remove('on','done'));
+    else steps[i-1].classList.replace('on','done');
+    void document.body.offsetWidth;
+    steps[i].classList.add('on');
+    // na telefonie przewiń karuzelę do aktywnego kroku, tylko gdy jest widoczna
+    if(!touched&&box.scrollWidth>box.clientWidth+4){
+      const r=box.getBoundingClientRect();
+      if(r.top<innerHeight&&r.bottom>0){const sr=steps[i].getBoundingClientRect();box.scrollTo({left:box.scrollLeft+(sr.left-r.left)-(r.width-sr.width)/2,behavior:'smooth'})}
+    }
+    i=(i+1)%steps.length;
+  };
+  run();setInterval(()=>{if(i===0&&steps[2].classList.contains('on')){steps[2].classList.replace('on','done')}run()},4200);
 })();
 </script>
 </body>
