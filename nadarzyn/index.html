@@ -267,8 +267,8 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
     </div>
     <div class="summary" id="summary"></div>
     <div class="legend">
-      <span><b class="lS">S</b> sushi</span>
-      <span><b class="lK">K</b> kucharz</span>
+      <span><b class="lS">S</b> sushi master</span>
+      <span><b class="lK">K</b> kuchnia ciepła</span>
       <span><b style="background:var(--weekend)">X</b> kierowca / kelnerka</span>
       <span><b style="color:var(--block)">✕</b> nie może tego dnia</span>
       <span><b style="color:var(--wasabi)">○</b> chciał pracować, nie dostał</span>
@@ -278,7 +278,7 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
     <div class="notes" id="notes"></div>
     <details id="manualBox">
       <summary style="cursor:pointer;font-weight:600">Edytuj grafik ręcznie</summary>
-      <p class="hint" style="margin:8px 0">Możesz też stuknąć dowolną kratkę w tabeli – otworzy się edycja tego dnia. Dla każdego dnia: para sushi · kucharz, kierowca, kelnerka (pokazują się tylko dozwolone pary). Po zmianach kliknij „Zapisz grafik”.</p>
+      <p class="hint" style="margin:8px 0">Możesz też stuknąć dowolną kratkę w tabeli – otworzy się edycja tego dnia. Dla każdego dnia: para sushi master · kuchnia ciepła, kierowca, kelnerka (pokazują się tylko dozwolone pary). Po zmianach kliknij „Zapisz grafik”.</p>
       <div class="days" id="days"></div>
     </details>
     <details id="clearBox">
@@ -295,8 +295,8 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
     <details>
       <summary style="cursor:pointer;font-weight:600">Zasady</summary>
       <ul class="rules">
-        <li>Na każdej zmianie: sushi master, kucharz, kierowca i kelnerka.</li>
-        <li>Omakasa i Wojtek robią tylko sushi, Marcin tylko kuchnię, Janusz i Bartek jedno i drugie.</li>
+        <li>Na każdej zmianie: sushi master, kuchnia ciepła, kierowca i kelnerka.</li>
+        <li>Omakasa i Wojtek są tylko sushi masterami, Marcin tylko na kuchni ciepłej, Janusz i Bartek jedno i drugie.</li>
         <li>Wojtek + Bartek: Wojtek na sushi, Bartek na kuchni.</li>
         <li>Bartek + Janusz: Bartek na sushi, Janusz na kuchni.</li>
         <li>Nikt nie pracuje więcej niż 4 dni z rzędu.</li>
@@ -314,11 +314,11 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
 <script>
 // def = ustalenia szefa, obowiązują dopóki pracownik nie wpisze swoich liczb; noWd = dni tygodnia wykluczone (0=nd, 6=sb)
 const STAFF=[
-  {id:'omakasa',name:'Omakasa',group:'kuchnia',sushi:true,kitchen:false,role:'sushi, sam wybiera dni',def:{min:2,max:3},picksOwn:true},
-  {id:'wojtek',name:'Wojtek',group:'kuchnia',sushi:true,kitchen:false,role:'sushi',def:{min:6,max:8}},
-  {id:'marcin',name:'Marcin',group:'kuchnia',sushi:false,kitchen:true,role:'kucharz',def:{}},
-  {id:'janusz',name:'Janusz',group:'kuchnia',sushi:true,kitchen:true,role:'sushi + kucharz',def:{}},
-  {id:'bartek',name:'Bartek',group:'kuchnia',sushi:true,kitchen:true,role:'sushi + kucharz',def:{min:24,max:24}},
+  {id:'omakasa',name:'Omakasa',group:'kuchnia',sushi:true,kitchen:false,role:'sushi master, sam wybiera dni',def:{min:2,max:3},picksOwn:true},
+  {id:'wojtek',name:'Wojtek',group:'kuchnia',sushi:true,kitchen:false,role:'sushi master',def:{min:6,max:8}},
+  {id:'marcin',name:'Marcin',group:'kuchnia',sushi:false,kitchen:true,role:'kuchnia ciepła',def:{}},
+  {id:'janusz',name:'Janusz',group:'kuchnia',sushi:true,kitchen:true,role:'sushi master + kuchnia ciepła',def:{}},
+  {id:'bartek',name:'Bartek',group:'kuchnia',sushi:true,kitchen:true,role:'sushi master + kuchnia ciepła',def:{min:24,max:24}},
   {id:'piotrek',name:'Piotrek',group:'kierowcy',role:'kierowca, bez sobót',def:{},noWd:[6]},
   {id:'mariusz',name:'Mariusz',group:'kierowcy',role:'kierowca',def:{min:6,max:7}},
   {id:'zuzia',name:'Zuzia',group:'kelnerki',role:'kelnerka',def:{}},
@@ -727,7 +727,7 @@ function buildPrint(){
     }
   }
   h+='</tbody></table>';
-  h+='<div class="legend"><span><b>S</b> sushi</span><span><b>K</b> kucharz</span><span><b>X</b> kierowca / kelnerka</span><span><b>–</b> lokal zamknięty</span><span>szare tło = weekend</span></div>';
+  h+='<div class="legend"><span><b>S</b> sushi master</span><span><b>K</b> kuchnia ciepła</span><span><b>X</b> kierowca / kelnerka</span><span><b>–</b> lokal zamknięty</span><span>szare tło = weekend</span></div>';
   $('printSheet').innerHTML=h;
   return true;
 }
@@ -781,7 +781,7 @@ function sheetCanvas(){
   for(let d=0;d<=n;d++){const cx=M+nameW+d*cw;line(cx,top,cx,y)}
   // legenda
   x.textAlign='left';x.fillStyle='#333';x.font=`400 32px ${F}`;
-  x.fillText('S – sushi    K – kucharz    X – kierowca / kelnerka    – lokal zamknięty    szare tło = weekend',M,y+60);
+  x.fillText('S – sushi master    K – kuchnia ciepła    X – kierowca / kelnerka    – lokal zamknięty    szare tło = weekend',M,y+60);
   return c;
 }
 function sheetPdf(){
