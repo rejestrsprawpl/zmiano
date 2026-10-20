@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Zmiano – grafik pracy, który układa się sam</title>
-<meta name="description" content="Pracownicy wpisują z telefonu, kiedy mogą pracować. Ty klikasz „Ułóż grafik”. Gotowy grafik na cały miesiąc trafia do ekipy jako PDF. Dla małej gastronomii.">
+<meta name="description" content="Pracownicy wpisują z telefonu, kiedy mogą pracować. Ty klikasz „Wygeneruj grafik”. Gotowy grafik na cały miesiąc trafia do ekipy jako PDF. Dla małej gastronomii.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap">
@@ -65,7 +65,8 @@ nav a.k{font-weight:600;text-decoration:none;border-bottom:2px solid var(--tape)
 .scr{height:100%;border-radius:30px;background:var(--scr);color:var(--scr-ink);overflow:hidden;display:flex;flex-direction:column;font-size:12px;line-height:1.3;position:relative}
 .scr .bar{height:30px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font:600 11px var(--f-body)}
 .scr .bar::after{content:"";width:16px;height:8px;border:1.5px solid currentColor;border-radius:2px}
-.scr .hd{padding:6px 16px 10px;display:flex;flex-direction:column;gap:2px}
+.scr>*{flex:none}
+.scr .hd{padding:6px 16px 8px;display:flex;flex-direction:column;gap:2px}
 .scr .hd b{font:700 16px/1.15 var(--f-body)}
 .scr .hd span{color:var(--scr-muted);font-size:11px}
 .cap{text-align:center;width:calc(236px * var(--sc) + 16px);display:flex;flex-direction:column;gap:6px}
@@ -86,15 +87,20 @@ nav a.k{font-weight:600;text-decoration:none;border-bottom:2px solid var(--tape)
 
 /* ekran 2: szef układa grafik */
 .mgrid{margin:4px 12px 0;display:grid;grid-template-columns:38px repeat(10,1fr);border-top:1px solid var(--scr-line);border-left:1px solid var(--scr-line)}
-.mgrid > *{height:21px;border-right:1px solid var(--scr-line);border-bottom:1px solid var(--scr-line);display:grid;place-items:center;font:700 9px var(--f-body);transition:background .2s,color .2s}
+.mgrid > *{height:18px;border-right:1px solid var(--scr-line);border-bottom:1px solid var(--scr-line);display:grid;place-items:center;font:700 9px var(--f-body);transition:background .2s,color .2s}
 .mgrid .n{justify-content:start;padding-left:4px;font-weight:600;font-size:8.5px;place-items:center start}
 .mgrid .h{font-weight:500;color:var(--scr-muted);font-size:8px}
 .mgrid .c{color:transparent}
-.mgo{margin:14px 12px 0;height:40px;border-radius:12px;background:#24382d;color:#fff;display:grid;place-items:center;font:600 13px var(--f-body);transition:transform .15s,background .3s}
-.mleg{margin:6px 12px 0;display:flex;flex-wrap:wrap;gap:4px 8px;font-size:8.5px;color:var(--scr-muted)}
+.mready{margin:0 12px;padding:8px 10px;border-radius:10px;background:#e3f3e6;border:1px solid #b9dfc1;display:flex;flex-direction:column;gap:1px}
+.mready .dots{display:flex;gap:3px;margin-bottom:4px}
+.mready .dots i{width:9px;height:9px;border-radius:50%;background:var(--want)}
+.mready b{font:700 11.5px/1.25 var(--f-body);color:#1d5e2e}
+.mready span{font-size:10px;color:#3c6b47}
+.mgo{margin:10px 12px 0;height:40px;border-radius:12px;background:#24382d;color:#fff;display:grid;place-items:center;font:600 13px var(--f-body);transition:transform .15s,background .3s}
+.mleg{margin:5px 12px 0;display:flex;flex-wrap:wrap;gap:4px 8px;font-size:8.5px;color:var(--scr-muted)}
 .mleg b{display:inline-grid;place-items:center;width:12px;height:12px;border-radius:3px;font-size:8px;color:var(--x-fg);margin-right:2px}
 .mleg .ls{background:var(--s-bg);color:var(--s-fg)}.mleg .lk{background:var(--k-bg);color:var(--k-fg)}
-.mstat{margin:12px 12px 0;padding:9px 10px;border-radius:10px;background:#fff;border:1px solid var(--scr-line);display:flex;gap:8px;align-items:center;font-size:11px;opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
+.mstat{margin:8px 12px 0;padding:7px 10px;border-radius:10px;background:#fff;border:1px solid var(--scr-line);display:flex;gap:8px;align-items:center;font-size:11px;opacity:0;transform:translateY(6px);transition:opacity .35s,transform .35s}
 .mstat i{font-style:normal;width:18px;height:18px;border-radius:50%;background:var(--want);color:#fff;display:grid;place-items:center;font-size:11px;flex:none}
 
 /* ekran 3: czat ekipy */
@@ -253,13 +259,14 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
         <li class="step">
           <div class="pw"><div class="phone" aria-hidden="true"><div class="scr">
             <div class="bar">9:42</div>
-            <div class="hd"><b>Grafik na listopad</b><span>Wpisało 9 z 9 osób</span></div>
-            <div class="mgo">Ułóż grafik</div>
+            <div class="hd"><b>Grafik na listopad</b><span>Sushi Rzeszów</span></div>
+            <div class="mready"><div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><b>9/9 pracowników podało dostępność</b><span>Nic nie musisz układać sam.</span></div>
+            <div class="mgo">Wygeneruj grafik</div>
             <div class="mgrid" id="mgrid"></div>
             <div class="mleg"><span><b class="ls">S</b> sushi master</span><span><b class="lk">K</b> kuchnia ciepła</span><span><b>X</b> kierowca, kelnerka</span></div>
             <div class="mstat"><i>✓</i><span><b>30 z 30 dni obsadzonych</b><br>nikt nie ma więcej niż 4 dni z rzędu</span></div>
           </div></div></div>
-          <div class="cap"><h3>Klikasz „Ułóż grafik”</h3><p>Cały miesiąc obsadzony według zasad Twojego lokalu w kilka sekund. Poprawki stuknięciem w kratkę.</p></div>
+          <div class="cap"><h3>Klikasz „Wygeneruj grafik”</h3><p>Nie układasz niczego sam. Zmiano obsadza cały miesiąc według zasad Twojego lokalu w kilka sekund.</p></div>
         </li>
         <!-- krok 3 -->
         <li class="step">
