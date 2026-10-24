@@ -38,16 +38,6 @@ h3{font:700 19px/1.25 var(--f-body)}
 .btn{display:inline-flex;align-items:center;font:700 17px/1 var(--f-body);text-decoration:none;padding:17px 24px;border-radius:4px;background:var(--tape);color:var(--tape-ink);box-shadow:0 3px 0 #c99a00;transition:transform .12s,box-shadow .12s}
 .btn:hover{transform:translateY(1px);box-shadow:0 2px 0 #c99a00}
 .btn:active{transform:translateY(3px);box-shadow:none}
-/* przycisk zakupu z obiegającym światłem na krawędzi */
-.btn.beam{position:relative;overflow:hidden;isolation:isolate;padding:3px;background:#1a2127;border-radius:8px}
-.btn.beam .beam-ray{position:absolute;inset:-200%;z-index:0;pointer-events:none;
-  background:conic-gradient(from 0deg at 50% 50%,transparent 0deg,transparent 250deg,rgba(255,201,41,.6) 300deg,#fff 345deg,transparent 360deg);
-  animation:beam-rotate 3s linear infinite}
-.btn.beam .beam-in{position:relative;z-index:1;display:inline-flex;align-items:center;gap:10px;padding:15px 22px;border-radius:5px;background:var(--tape);color:var(--tape-ink)}
-.btn.beam .beam-in svg{width:18px;height:18px;flex:none;transition:transform .3s}
-.btn.beam:hover .beam-in svg{transform:scale(1.15)}
-@keyframes beam-rotate{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.btn.beam .beam-ray{animation:none;opacity:.4}}
 .btn:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
 /* ---------- nagłówek ---------- */
@@ -250,7 +240,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   <div class="hero-copy">
     <h1>Grafik na cały miesiąc układa się sam</h1>
     <p>Koniec z wieczorem nad kartką i SMS-ami „kto może w sobotę?”. Zasady lokalu ustawiasz raz, a każdy kolejny grafik robi się w kilka minut.</p>
-      <div><a class="btn beam" href="/panel#rejestracja"><span class="beam-ray" aria-hidden="true"></span><span class="beam-in"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg>Załóż konto lokalu</span></a></div>
+      <div><a class="btn" href="/panel#rejestracja">Załóż konto lokalu</a></div>
       <span class="note">Dla lokali od 5 do 20 osób. Pomagamy przy pierwszym grafiku.</span>
   </div>
   <ol class="phones" id="phones">
