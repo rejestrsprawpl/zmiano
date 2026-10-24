@@ -253,7 +253,7 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
         <button id="savePlan" disabled>Zapisz grafik</button>
       </div>
     </div>
-    <div class="row"><button id="pdfBtn" class="primary">Pobierz PDF (A4)</button><button id="shareBtn" hidden>Wyślij grafik</button><button id="printBtn">Drukuj</button><span class="hint" id="printHint"></span></div>
+    <div class="row"><button id="pdfBtn" class="primary">Pobierz PDF (A4)</button><button id="shareBtn" hidden>Wyślij grafik</button><button id="printBtn">Drukuj</button><button id="csvBtn" hidden>Eksport dyspozycji (Excel)</button><span class="hint" id="printHint"></span></div>
     <div class="shutbox" id="dlBox" hidden>
       <div><b>Termin wpisywania dyspozycji</b> <span class="hint">Po tym dniu pracownicy nie mogą już zmieniać swoich preferencji (Ty możesz zawsze).</span></div>
       <div class="row"><input type="date" id="dlInput" style="max-width:190px"><button id="dlSave">Ustaw termin</button><button id="dlClear">Bez terminu</button></div>
@@ -656,7 +656,7 @@ function startApp(me){
   user=me;
   $('loginView').hidden=true;$('appView').hidden=false;
   $('whoName').textContent=me.admin?'Zalogowany: Szef':`Zalogowany: ${me.name}`;
-  $('adminBtns').hidden=!me.admin;$('dlBox').hidden=!me.admin;$('shutBox').hidden=!me.admin;$('manualBox').hidden=!me.admin;$('clearBox').hidden=!me.admin;$('howto').hidden=!!me.admin;
+  $('adminBtns').hidden=!me.admin;$('csvBtn').hidden=!me.admin;$('dlBox').hidden=!me.admin;$('shutBox').hidden=!me.admin;$('manualBox').hidden=!me.admin;$('clearBox').hidden=!me.admin;$('howto').hidden=!!me.admin;
   $('howtoCal').textContent=byId[me.id]?.picksOwn?'W kalendarzu stuknij dni, w które chcesz pracować (zielone). Pracujesz tylko w zaznaczone dni.':'W kalendarzu stuknij dzień raz: chcesz pracować (zielony). Drugi raz: nie możesz (czerwony). Trzeci raz: obojętnie.';
   renderDeadline();
   $('peopleTitle').textContent=me.admin?'Czyje preferencje edytujesz?':'Twoje preferencje';
@@ -791,6 +791,30 @@ function sheetPdf(){
   pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',0,0,297,210);
   return pdf.output('blob');
 }
+
+// ---------- eksport dyspozycji i grafiku do pliku (Excel / CSV) ----------
+function csvCell(v){v=String(v??'');return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function exportCsv(){
+  const n=nDays(),days=currentDays(),rows=[];
+  rows.push([`Dyspozycyjność · ${MONTHS[cur.m]} ${cur.y} · Nadarzyn`]);
+  rows.push(['Osoba','Stanowisko','Dni od','Dni do','Rytm','Chce pracować (dni)','Nie może (dni)','Uwagi','Zapisano']);
+  STAFF.forEach(s=>{
+    const p=state.prefs[s.id];
+    rows.push([s.name,s.role,p?.daysMin??'',p?.daysMax??'',p?.rhythm||'',(p?.want||[]).join(', '),(p?.blocked||[]).join(', '),p?.note||'',
+      p?.updatedAt?new Date(p.updatedAt).toLocaleString('pl-PL'):'nie wpisał(a)']);
+  });
+  rows.push([]);
+  rows.push([days?(state.draft?'Grafik (wersja robocza, niezapisana)':'Grafik (zapisany)'):'Grafik: jeszcze nie ułożony']);
+  if(days){
+    rows.push(['Osoba',...Array.from({length:n},(_,i)=>`${i+1} ${WD[wday(i+1)]}`),'Suma']);
+    STAFF.forEach(s=>{let c=0;const r=[s.name];for(let d=1;d<=n;d++){const t=(days[d-1]===null||state.closed.has(d))?'–':(slotOf(days[d-1],s.id)||'');if(t&&t!=='–')c++;r.push(t||'')}r.push(c);rows.push(r)});
+    rows.push([]);rows.push(['S – sushi master, K – kuchnia ciepła, X – kierowca / kelnerka, – lokal zamknięty']);
+  }
+  const csv='﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');
+  const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
+  a.href=u;a.download=`dyspozycje-nadarzyn-${mKey()}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);
+}
+$('csvBtn').onclick=exportCsv;
 const pdfName=()=>`grafik-nadarzyn-${mKey()}.pdf`;
 $('pdfBtn').onclick=()=>{
   if(!window.jspdf){$('printHint').textContent='Nie udało się wczytać generatora PDF. Odśwież stronę.';return}

@@ -86,7 +86,7 @@
       <div><h2>Grafik na <span id="mLabel2"></span></h2><p class="hint" id="planInfo"></p></div>
       <div class="row" id="bossBtns"><button id="genBtn" class="primary">Wygeneruj grafik</button><button id="savePlan" class="dark" disabled>Zapisz grafik</button></div>
     </div>
-    <div class="row"><button id="pdfBtn">Pobierz PDF (A4)</button><button id="shareBtn" hidden>Wyślij grafik</button><button id="printBtn">Drukuj</button><span class="hint" id="printHint"></span></div>
+    <div class="row"><button id="pdfBtn">Pobierz PDF (A4)</button><button id="shareBtn" hidden>Wyślij grafik</button><button id="printBtn">Drukuj</button><button id="csvBtn" hidden>Eksport dyspozycji (Excel)</button><span class="hint" id="printHint"></span></div>
 
     <details id="monthBox" hidden><summary style="cursor:pointer;font-weight:700">Ustawienia miesiąca: termin wpisywania, dni zamknięte</summary><div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
     <div class="box" id="dlBox" hidden>
@@ -191,7 +191,7 @@ function startApp(){
   $('lkTitle').textContent=L.name;document.title=`Grafik ${L.name} · Zmiano`;
   $('whoName').textContent=ME.boss?`Szef: ${ME.name}`:ME.name;
   $('panelLink').hidden=!ME.boss;
-  ['bossBtns','monthBox','dlBox','shutBox','manualBox','clearBox'].forEach(id=>$(id).hidden=!ME.boss);
+  ['bossBtns','csvBtn','monthBox','dlBox','shutBox','manualBox','clearBox'].forEach(id=>$(id).hidden=!ME.boss);
   $('pickWrap').hidden=!ME.boss;$('howto').hidden=ME.boss;
   state.sel=ME.boss?state.sel:ME.id;
   setMonth();load(true);
@@ -514,6 +514,30 @@ function sheetCanvas(){
   return c;
 }
 function sheetPdf(){const c=sheetCanvas();if(!c)return null;const pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});pdf.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,297,210);return pdf.output('blob')}
+
+// ---------- eksport dyspozycji i grafiku do pliku (Excel / CSV) ----------
+function csvCell(v){v=String(v??'');return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function exportCsv(){
+  const n=nDays(),days=currentDays(),rows=[];
+  rows.push([`Dyspozycyjność · ${MONTHS[cur.m]} ${cur.y} · ${L.name}`]);
+  rows.push(['Osoba','Stanowisko','Dni od','Dni do','Rytm','Chce pracować (dni)','Nie może (dni)','Uwagi','Zapisano']);
+  L.staff.forEach(s=>{
+    const p=state.prefs[s.id];
+    rows.push([s.name,posNames(s),p?.daysMin??'',p?.daysMax??'',p?.rhythm||'',(p?.want||[]).join(', '),(p?.blocked||[]).join(', '),p?.note||'',
+      p?.updatedAt?new Date(p.updatedAt).toLocaleString('pl-PL'):'nie wpisał(a)']);
+  });
+  rows.push([]);
+  rows.push([days?(state.draft?'Grafik (wersja robocza, niezapisana)':'Grafik (zapisany)'):'Grafik: jeszcze nie ułożony']);
+  if(days){
+    rows.push(['Osoba',...Array.from({length:n},(_,i)=>`${i+1} ${WD[wday(i+1)]}`),'Suma']);
+    L.staff.forEach(s=>{let c=0;const r=[s.name];for(let d=1;d<=n;d++){const t=(isClosed(d)||!days[d-1])?'–':(cellOf(days[d-1],s.id)?.short||'');if(t&&t!=='–')c++;r.push(t||'')}r.push(c);rows.push(r)});
+    rows.push([]);rows.push([L.positions.map(p=>`${p.short} – ${p.name}`).join(', ')+', – lokal zamknięty']);
+  }
+  const csv='﻿'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');
+  const u=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
+  a.href=u;a.download=`dyspozycje-${slug}-${mKey()}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);
+}
+$('csvBtn').onclick=exportCsv;
 const pdfName=()=>`grafik-${slug}-${mKey()}.pdf`;
 $('pdfBtn').onclick=()=>{
   if(!window.jspdf){$('printHint').textContent='Nie udało się wczytać generatora PDF. Odśwież stronę.';return}
