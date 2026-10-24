@@ -3,6 +3,7 @@
 Grafik pracy dla gastronomii. Strona: https://zmiano.pl
 
 ## Struktura
+- `app/` – konta lokali i grafik dla wielu lokali: `panel.html` (zmiano.pl/panel), `grafik.html` (zmiano.pl/l/nazwa), `api.php`, `engine.js` (silnik układania grafiku). Dane w `app/data/` tylko na serwerze.
 - `index.html` – strona główna zmiano.pl
 - `nadarzyn/` – aplikacja grafiku dla lokalu w Nadarzynie (PHP + pliki danych)
 

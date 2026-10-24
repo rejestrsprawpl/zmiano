@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Panel · Zmiano</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/app/app.css">
+<style>
+.auth{max-width:460px}
+.ed-row{display:grid;grid-template-columns:1fr 70px 90px auto;gap:8px;align-items:center}
+.staff{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.staff .head{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.checks label{display:inline-flex;gap:5px;align-items:center;font-size:13px;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--paper);cursor:pointer}
+.checks input{margin:0}
+.pin{font:700 18px var(--f-mono);letter-spacing:.15em;padding:4px 10px;border-radius:6px;background:var(--paper);border:1px dashed var(--line)}
+.savebar{position:sticky;bottom:0;background:var(--bg);padding:12px 0;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap;z-index:5}
+.linkbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-radius:10px;background:var(--tape);color:var(--tape-ink)}
+.linkbox code{font:700 15px var(--f-mono);word-break:break-all}
+.rule{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.rule select{width:auto;max-width:170px;padding:6px 8px}
+.acc{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.badge.pending{background:var(--tape);color:var(--tape-ink);border-color:var(--tape)}
+.badge.active{background:var(--ok-soft);border-color:var(--ok)}
+.badge.rejected{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+@media (max-width:560px){.ed-row{grid-template-columns:1fr 56px 70px}.ed-row button{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="/">zmiano<i></i></a>
+    <div class="row"><span class="hint" id="who"></span><button id="logout" hidden>Wyloguj</button></div>
+  </header>
+
+  <!-- pierwsze konto administratora -->
+  <section id="vSetup" class="panel auth" hidden>
+    <h1>Konto administratora</h1>
+    <p class="muted">Jednorazowa konfiguracja. To konto akceptuje nowe lokale.</p>
+    <form id="fSetup" class="grid2" style="grid-template-columns:1fr">
+      <label class="f">Imię i nazwisko<input type="text" id="suName" autocomplete="name" required></label>
+      <label class="f">E-mail<input type="email" id="suEmail" autocomplete="email" required></label>
+      <label class="f">Hasło (min. 8 znaków)<input type="password" id="suPass" autocomplete="new-password" minlength="8" required></label>
+      <button class="primary" type="submit">Utwórz konto administratora</button>
+      <span class="status err" id="suErr"></span>
+    </form>
+  </section>
+
+  <!-- logowanie / rejestracja / reset -->
+  <section id="vAuth" class="panel auth" hidden>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tLogin" aria-selected="true">Logowanie</button>
+      <button role="tab" id="tReg" aria-selected="false">Załóż konto</button>
+    </div>
+    <form id="fLogin" class="grid2" style="grid-template-columns:1fr">
+      <h2>Zaloguj się do panelu lokalu</h2>
+      <label class="f">E-mail<input type="email" id="liEmail" autocomplete="email" required></label>
+      <label class="f">Hasło<input type="password" id="liPass" autocomplete="current-password" required></label>
+      <button class="primary" type="submit">Zaloguj się</button>
+      <span class="status err" id="liErr"></span>
+      <button type="button" class="link" id="toForgot">Nie pamiętam hasła</button>
+      <p class="hint">Jesteś pracownikiem? Wejdź przez link do grafiku, który dostałeś od szefa, i zaloguj się PIN-em.</p>
+    </form>
+    <form id="fReg" class="grid2" style="grid-template-columns:1fr" hidden>
+      <h2>Załóż konto lokalu</h2>
+      <p class="hint">Po rejestracji sprawdzimy zgłoszenie i aktywujemy konto, zwykle w ciągu jednego dnia roboczego. W tym czasie możesz już dodać pracowników.</p>
+      <label class="f">Nazwa lokalu<input type="text" id="rgLokal" required placeholder="np. Sushi Rzeszów"></label>
+      <label class="f">Miasto<input type="text" id="rgCity" placeholder="np. Rzeszów"></label>
+      <label class="f">Imię i nazwisko<input type="text" id="rgName" autocomplete="name" required></label>
+      <label class="f">E-mail<input type="email" id="rgEmail" autocomplete="email" required></label>
+      <label class="f">Telefon<input type="tel" id="rgPhone" autocomplete="tel" placeholder="do kontaktu przy wdrożeniu"></label>
+      <label class="f">Ilu masz pracowników?<select id="rgStaff"><option value="">Wybierz</option><option>do 5</option><option>6–10</option><option>11–20</option><option>ponad 20</option></select></label>
+      <label class="f">Hasło (min. 8 znaków)<input type="password" id="rgPass" autocomplete="new-password" minlength="8" required></label>
+      <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" id="rgTerms" style="margin-top:3px"> Akceptuję regulamin i zgadzam się na przetwarzanie danych w celu założenia i obsługi konta.</label>
+      <button class="primary" type="submit">Załóż konto</button>
+      <span class="status err" id="rgErr"></span>
+    </form>
+    <form id="fForgot" class="grid2" style="grid-template-columns:1fr" hidden>
+      <h2>Ustaw nowe hasło</h2>
+      <p class="hint">Podaj e-mail konta. Wyślemy link do ustawienia nowego hasła.</p>
+      <label class="f">E-mail<input type="email" id="fgEmail" autocomplete="email" required></label>
+      <button class="primary" type="submit">Wyślij link</button>
+      <span class="status" id="fgMsg"></span>
+      <button type="button" class="link" id="backLogin">Wróć do logowania</button>
+    </form>
+    <form id="fReset" class="grid2" style="grid-template-columns:1fr" hidden>
+      <h2>Nowe hasło</h2>
+      <label class="f">Nowe hasło (min. 8 znaków)<input type="password" id="rsPass" autocomplete="new-password" minlength="8" required></label>
+      <button class="primary" type="submit">Zapisz hasło i zaloguj</button>
+      <span class="status err" id="rsErr"></span>
+    </form>
+  </section>
+
+  <!-- konto czeka na akceptację -->
+  <section id="vPending" class="panel" hidden>
+    <h1>Dziękujemy, konto czeka na aktywację</h1>
+    <p class="muted">Sprawdzimy zgłoszenie i aktywujemy konto, zwykle w ciągu jednego dnia roboczego. Dostaniesz e-mail. W tym czasie możesz już ustawić lokal i dodać pracowników poniżej.</p>
+  </section>
+  <section id="vRejected" class="panel" hidden>
+    <h1>Konto nie zostało aktywowane</h1>
+    <p class="muted">Napisz do nas na kontakt@zmiano.pl, jeśli to pomyłka.</p>
+  </section>
+
+  <!-- administrator -->
+  <section id="vAdmin" class="panel" hidden>
+    <div class="row" style="justify-content:space-between"><h1>Konta lokali</h1><button id="admRefresh">Odśwież</button></div>
+    <div id="admList"></div>
+  </section>
+
+  <!-- edytor lokalu -->
+  <section id="vEditor" hidden style="display:flex;flex-direction:column;gap:18px">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between"><h1 id="edTitle">Twój lokal</h1><button id="edClose" hidden>Wróć do listy kont</button></div>
+      <div class="linkbox" id="linkBox"><span>Link do grafiku dla ekipy:</span><code id="lkUrl"></code><button id="copyLink">Kopiuj</button><a id="openGrafik" class="hint" style="color:inherit;font-weight:700" href="#">Otwórz grafik</a></div>
+      <label class="f">Nazwa lokalu<input type="text" id="edName"></label>
+    </div>
+
+    <div class="panel">
+      <div><h2>1. Stanowiska na zmianie</h2><p class="hint">Kto musi być na każdej zmianie, np. Kuchnia ciepła, Sushi master, Kelnerka, Kierowca. Skrót pojawia się w tabeli grafiku.</p></div>
+      <div class="ed-row hint" style="font-weight:600"><span>Nazwa</span><span>Skrót</span><span>Ile osób</span><span></span></div>
+      <div id="edPos" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div><button id="addPos">Dodaj stanowisko</button></div>
+    </div>
+
+    <div class="panel">
+      <div><h2>2. Pracownicy</h2><p class="hint">Każdy dostaje 4-cyfrowy PIN do logowania. Nowi pracownicy dostaną PIN po zapisaniu.</p></div>
+      <div id="edStaff" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div><button id="addStaff">Dodaj pracownika</button></div>
+    </div>
+
+    <div class="panel">
+      <div><h2>3. Zasady</h2><p class="hint">Zasady, których grafik ma zawsze pilnować.</p></div>
+      <label class="f" style="max-width:260px">Maksymalnie dni pracy z rzędu<input type="number" id="edMaxRun" min="1" max="14"></label>
+      <div><b>Lokal jest otwarty w</b><div class="checks" id="edOpen" style="margin-top:6px"></div></div>
+      <div class="box"><b>Gdy dwie osoby są razem na zmianie</b><div id="edPairs" style="display:flex;flex-direction:column;gap:8px"></div><div><button id="addPair">Dodaj zasadę</button></div></div>
+      <div class="box"><b>Osoby, które nie mogą pracować razem</b><div id="edApart" style="display:flex;flex-direction:column;gap:8px"></div><div><button id="addApart">Dodaj zasadę</button></div></div>
+    </div>
+
+    <div class="savebar"><button class="primary" id="edSave">Zapisz zmiany</button><span class="status" id="edStatus"></span></div>
+  </section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const WDS=['nd','pn','wt','śr','cz','pt','sb'],WORDER=[1,2,3,4,5,6,0];
+const next=new URLSearchParams(location.search).get('next');
+let USER=null,ED=null,dirty=false;
+
+async function api(action,body,query=''){
+  const r=await fetch(`/app/api.php?action=${action}${query}`,{method:body?'POST':'GET',credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error(j.error||'Błąd serwera. Spróbuj ponownie.');
+  return j;
+}
+const views=['vSetup','vAuth','vPending','vRejected','vAdmin','vEditor'];
+function show(...ids){views.forEach(v=>$(v).hidden=!ids.includes(v))}
+function authTab(which){
+  ['fLogin','fReg','fForgot','fReset'].forEach(f=>$(f).hidden=f!==which);
+  $('tLogin').setAttribute('aria-selected',which!=='fReg');$('tReg').setAttribute('aria-selected',which==='fReg');
+}
+$('tLogin').onclick=()=>authTab('fLogin');$('tReg').onclick=()=>authTab('fReg');
+$('toForgot').onclick=()=>authTab('fForgot');$('backLogin').onclick=()=>authTab('fLogin');
+
+/* ---------- start ---------- */
+async function boot(){
+  const r=await api('me');
+  const hash=location.hash.slice(1),setupTok=(hash.match(/^setup=(.+)$/)||[])[1],resetTok=(hash.match(/^reset=(.+)$/)||[])[1];
+  USER=r.user;
+  $('who').textContent=USER?USER.name:'';$('logout').hidden=!USER;
+  if(!USER){
+    if(r.needsSetup&&setupTok){show('vSetup');return}
+    show('vAuth');
+    if(resetTok)authTab('fReset');else if(hash==='rejestracja')authTab('fReg');else authTab('fLogin');
+    return;
+  }
+  if(next&&/^\/l\/[a-z0-9-]+$/.test(next)&&USER.status==='active'){location.href=next;return}
+  if(USER.role==='admin'){show('vAdmin');loadAdmin();return}
+  if(USER.status==='rejected'){show('vRejected');return}
+  if(USER.status==='pending'){show('vPending','vEditor')}else show('vEditor');
+  openEditor(r.lokal,false);
+}
+$('logout').onclick=async()=>{try{await api('logout',{})}catch(e){}location.href='/panel'};
+
+/* ---------- formularze kont ---------- */
+$('fSetup').onsubmit=async e=>{e.preventDefault();$('suErr').textContent='';
+  try{await api('setup',{token:(location.hash.match(/setup=(.+)$/)||[])[1],name:$('suName').value,email:$('suEmail').value,password:$('suPass').value});history.replaceState(null,'',location.pathname);boot()}
+  catch(x){$('suErr').textContent=x.message}};
+$('fLogin').onsubmit=async e=>{e.preventDefault();$('liErr').textContent='';
+  try{await api('login',{email:$('liEmail').value,password:$('liPass').value});boot()}catch(x){$('liErr').textContent=x.message}};
+$('fReg').onsubmit=async e=>{e.preventDefault();$('rgErr').textContent='';
+  try{await api('register',{lokalName:$('rgLokal').value,city:$('rgCity').value,name:$('rgName').value,email:$('rgEmail').value,phone:$('rgPhone').value,staffCount:$('rgStaff').value,password:$('rgPass').value,terms:$('rgTerms').checked});history.replaceState(null,'',location.pathname);boot()}
+  catch(x){$('rgErr').textContent=x.message}};
+$('fForgot').onsubmit=async e=>{e.preventDefault();
+  try{await api('resetRequest',{email:$('fgEmail').value});$('fgMsg').textContent='Jeśli konto istnieje, link jest już w skrzynce. Sprawdź też spam.';$('fgMsg').className='status ok'}
+  catch(x){$('fgMsg').textContent=x.message;$('fgMsg').className='status err'}};
+$('fReset').onsubmit=async e=>{e.preventDefault();$('rsErr').textContent='';
+  try{await api('resetConfirm',{token:(location.hash.match(/reset=(.+)$/)||[])[1],password:$('rsPass').value});history.replaceState(null,'',location.pathname);boot()}
+  catch(x){$('rsErr').textContent=x.message}};
+
+/* ---------- administrator ---------- */
+async function loadAdmin(){
+  const box=$('admList');box.innerHTML='<p class="hint">Wczytuję…</p>';
+  try{
+    const r=await api('adminList',{});
+    if(!r.users.length){box.innerHTML='<p class="muted">Nie ma jeszcze żadnych kont lokali.</p>';return}
+    const st={pending:'Czeka',active:'Aktywne',rejected:'Odrzucone'};
+    box.innerHTML='';
+    r.users.forEach(u=>{
+      const el=document.createElement('div');el.className='acc';
+      el.innerHTML=`<div><div class="row"><b>${esc(u.lokalName)}</b><span class="hint">${esc(u.city)}</span><span class="badge ${u.status}">${st[u.status]}</span></div>
+        <div class="hint">${esc(u.name)} · ${esc(u.email)}${u.phone?' · '+esc(u.phone):''} · zadeklarowało ${esc(u.staffCount||'?')} osób, dodanych: ${u.staffNow} · ${new Date(u.createdAt).toLocaleDateString('pl-PL')}</div></div>
+        <div class="row"></div>`;
+      const act=el.querySelector('.row:last-child');
+      const btn=(t,cls,fn)=>{const b=document.createElement('button');b.textContent=t;if(cls)b.className=cls;b.onclick=fn;act.appendChild(b)};
+      if(u.status!=='active')btn('Aktywuj','primary',()=>setStatus(u.id,'active'));
+      if(u.status==='pending')btn('Odrzuć','warn',()=>setStatus(u.id,'rejected'));
+      if(u.status==='active')btn('Zawieś','warn',()=>setStatus(u.id,'pending'));
+      if(u.lokal)btn('Edytuj lokal','',async()=>{const l=await api('lokalGet',null,`&slug=${u.lokal}`);show('vEditor');openEditor(l.lokal,true)});
+      box.appendChild(el);
+    });
+  }catch(x){box.innerHTML=`<p class="status err">${esc(x.message)}</p>`}
+}
+async function setStatus(id,status){try{await api('adminSetStatus',{id,status});loadAdmin()}catch(x){alert(x.message)}}
+$('admRefresh').onclick=loadAdmin;
+$('edClose').onclick=()=>{show('vAdmin');loadAdmin()};
+
+/* ---------- edytor lokalu ---------- */
+function openEditor(l,asAdmin){
+  ED=JSON.parse(JSON.stringify(l));dirty=false;
+  $('edClose').hidden=!asAdmin;
+  $('edTitle').textContent=ED.name;$('edName').value=ED.name;
+  const url=`${location.origin}/l/${ED.slug}`;$('lkUrl').textContent=url.replace(/^https?:\/\//,'');$('openGrafik').href='/l/'+ED.slug;
+  $('linkBox').hidden=ED.status!=='active';
+  $('edMaxRun').value=ED.rules.maxRun||5;
+  renderAll();
+}
+function mark(){dirty=true;$('edStatus').textContent='Masz niezapisane zmiany.';$('edStatus').className='status'}
+function renderAll(){renderPos();renderStaff();renderOpen();renderPairs();renderApart()}
+function renderPos(){
+  const box=$('edPos');box.innerHTML='';
+  ED.positions.forEach((p,i)=>{
+    const r=document.createElement('div');r.className='ed-row';
+    r.innerHTML=`<input type="text" value="${esc(p.name)}" aria-label="Nazwa stanowiska"><input type="text" maxlength="2" value="${esc(p.short)}" aria-label="Skrót"><input type="number" min="1" max="6" value="${p.count}" aria-label="Ile osób"><button class="warn" aria-label="Usuń">Usuń</button>`;
+    const [n,s,c,del]=r.children;
+    n.oninput=()=>{p.name=n.value;if(!s.dataset.touched&&!p.shortSet){p.short=(n.value[0]||'').toUpperCase();s.value=p.short}mark();renderStaff();renderPairs()};
+    s.oninput=()=>{p.short=s.value.toUpperCase();p.shortSet=true;s.dataset.touched=1;mark()};
+    c.oninput=()=>{p.count=Math.max(1,Math.min(6,+c.value||1));mark()};
+    del.onclick=()=>{ED.positions.splice(i,1);ED.staff.forEach(st=>st.positions=st.positions.filter(x=>x!==p.id));ED.rules.pairs=ED.rules.pairs.filter(x=>x.bPos!==p.id);mark();renderAll()};
+    box.appendChild(r);
+  });
+}
+$('addPos').onclick=()=>{ED.positions.push({id:'pnew'+Math.random().toString(36).slice(2,8),name:'',short:'',count:1});mark();renderPos();$('edPos').lastElementChild.querySelector('input').focus()};
+function renderStaff(){
+  const box=$('edStaff');box.innerHTML='';
+  if(!ED.staff.length)box.innerHTML='<p class="hint">Nie ma jeszcze pracowników. Kliknij „Dodaj pracownika”.</p>';
+  ED.staff.forEach((s,i)=>{
+    const el=document.createElement('div');el.className='staff';
+    const posC=ED.positions.map(p=>`<label><input type="checkbox" data-p="${p.id}" ${s.positions.includes(p.id)?'checked':''}>${esc(p.name||'(bez nazwy)')}</label>`).join('');
+    const wdC=WORDER.map(w=>`<label><input type="checkbox" data-w="${w}" ${(s.noWd||[]).includes(w)?'checked':''}>${WDS[w]}</label>`).join('');
+    el.innerHTML=`<div class="head"><input type="text" value="${esc(s.name)}" placeholder="Imię" aria-label="Imię"><div class="row">${s.pin?`<span class="pin" title="PIN">${esc(s.pin)}</span><button data-a="pin">Nowy PIN</button><button data-a="msg">Skopiuj wiadomość</button>`:'<span class="hint">PIN po zapisaniu</span>'}<button class="warn" data-a="del">Usuń</button></div></div>
+      <div><span class="hint">Stanowiska</span><div class="checks">${posC}</div></div>
+      <div class="row"><span class="hint">Dni w miesiącu</span><input type="number" min="0" max="31" placeholder="od" value="${s.min??''}" data-f="min" style="width:80px"><span>–</span><input type="number" min="0" max="31" placeholder="do" value="${s.max??''}" data-f="max" style="width:80px"><span class="hint">puste = równo z innymi</span></div>
+      <div><span class="hint">Nigdy nie pracuje w</span><div class="checks">${wdC}</div></div>
+      <label class="row" style="font-size:14px;gap:6px"><input type="checkbox" data-f="own" ${s.picksOwn?'checked':''}>Sam wybiera dni (pracuje tylko w dni, które zaznaczy)</label>
+      <span class="status" data-st></span>`;
+    el.querySelector('.head input').oninput=e=>{s.name=e.target.value;mark();renderPairsSoon()};
+    el.querySelectorAll('[data-p]').forEach(c=>c.onchange=()=>{s.positions=ED.positions.map(p=>p.id).filter(id=>el.querySelector(`[data-p="${id}"]`).checked);mark()});
+    el.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{s.noWd=[...el.querySelectorAll('[data-w]:checked')].map(x=>+x.dataset.w);mark()});
+    el.querySelectorAll('[data-f=min],[data-f=max]').forEach(c=>c.oninput=()=>{s[c.dataset.f]=c.value===''?null:+c.value;mark()});
+    el.querySelector('[data-f=own]').onchange=e=>{s.picksOwn=e.target.checked;mark()};
+    el.querySelector('[data-a=del]').onclick=()=>{ED.staff.splice(i,1);ED.rules.pairs=ED.rules.pairs.filter(p=>p.a!==s.id&&p.b!==s.id);ED.rules.apart=ED.rules.apart.filter(p=>p.a!==s.id&&p.b!==s.id);mark();renderAll()};
+    const pinB=el.querySelector('[data-a=pin]');if(pinB)pinB.onclick=()=>{s.newPin=true;mark();el.querySelector('.pin').textContent='nowy po zapisaniu';pinB.disabled=true};
+    const msgB=el.querySelector('[data-a=msg]');if(msgB)msgB.onclick=async()=>{
+      const txt=`Cześć ${s.name}! Grafik w ${ED.name} robimy teraz w Zmiano. Wejdź na ${location.origin}/l/${ED.slug}, kliknij swoje imię i wpisz PIN: ${s.pin}. Zaznacz, kiedy możesz pracować, i kliknij „Zapisz”.`;
+      const st=el.querySelector('[data-st]');
+      try{await navigator.clipboard.writeText(txt);st.textContent='Skopiowane. Wyślij prywatnie, nie na grupę.';st.className='status ok'}catch(e){st.textContent=txt}
+    };
+    box.appendChild(el);
+  });
+}
+let rpT;function renderPairsSoon(){clearTimeout(rpT);rpT=setTimeout(()=>{renderPairs();renderApart()},400)}
+$('addStaff').onclick=()=>{ED.staff.push({id:'snew'+Math.random().toString(36).slice(2,8),name:'',positions:ED.positions.length===1?[ED.positions[0].id]:[],min:null,max:null,noWd:[],picksOwn:false});mark();renderStaff();$('edStaff').lastElementChild.querySelector('input').focus()};
+function renderOpen(){
+  const box=$('edOpen');const open=ED.rules.openWd||[0,1,2,3,4,5,6];
+  box.innerHTML=WORDER.map(w=>`<label><input type="checkbox" data-w="${w}" ${open.includes(w)?'checked':''}>${WDS[w]}</label>`).join('');
+  box.querySelectorAll('input').forEach(c=>c.onchange=()=>{ED.rules.openWd=[...box.querySelectorAll('input:checked')].map(x=>+x.dataset.w);mark()});
+}
+$('edMaxRun').oninput=()=>{ED.rules.maxRun=Math.max(1,Math.min(14,+$('edMaxRun').value||5));mark()};
+const staffOpts=v=>ED.staff.map(s=>`<option value="${s.id}" ${s.id===v?'selected':''}>${esc(s.name||'(bez imienia)')}</option>`).join('');
+const posOpts=v=>ED.positions.map(p=>`<option value="${p.id}" ${p.id===v?'selected':''}>${esc(p.name||'(bez nazwy)')}</option>`).join('');
+function renderPairs(){
+  const box=$('edPairs');box.innerHTML='';
+  (ED.rules.pairs||[]).forEach((p,i)=>{
+    const r=document.createElement('div');r.className='rule';
+    r.innerHTML=`Gdy <select data-k="a">${staffOpts(p.a)}</select> i <select data-k="b">${staffOpts(p.b)}</select> są razem, druga osoba idzie na <select data-k="bPos">${posOpts(p.bPos)}</select><button class="warn">Usuń</button>`;
+    r.querySelectorAll('select').forEach(s=>s.onchange=()=>{p[s.dataset.k]=s.value;mark()});
+    r.querySelector('button').onclick=()=>{ED.rules.pairs.splice(i,1);mark();renderPairs()};
+    box.appendChild(r);
+  });
+}
+$('addPair').onclick=()=>{if(ED.staff.length<2||!ED.positions.length){$('edStatus').textContent='Najpierw dodaj co najmniej dwóch pracowników i stanowisko.';return}
+  ED.rules.pairs=ED.rules.pairs||[];ED.rules.pairs.push({a:ED.staff[0].id,b:ED.staff[1].id,bPos:ED.positions[0].id});mark();renderPairs()};
+function renderApart(){
+  const box=$('edApart');box.innerHTML='';
+  (ED.rules.apart||[]).forEach((p,i)=>{
+    const r=document.createElement('div');r.className='rule';
+    r.innerHTML=`<select data-k="a">${staffOpts(p.a)}</select> i <select data-k="b">${staffOpts(p.b)}</select> nigdy nie pracują razem <button class="warn">Usuń</button>`;
+    r.querySelectorAll('select').forEach(s=>s.onchange=()=>{p[s.dataset.k]=s.value;mark()});
+    r.querySelector('button').onclick=()=>{ED.rules.apart.splice(i,1);mark();renderApart()};
+    box.appendChild(r);
+  });
+}
+$('addApart').onclick=()=>{if(ED.staff.length<2){$('edStatus').textContent='Najpierw dodaj co najmniej dwóch pracowników.';return}
+  ED.rules.apart=ED.rules.apart||[];ED.rules.apart.push({a:ED.staff[0].id,b:ED.staff[1].id});mark();renderApart()};
+$('edName').oninput=()=>{ED.name=$('edName').value;mark()};
+$('edSave').onclick=async()=>{
+  const btn=$('edSave');btn.disabled=true;$('edStatus').textContent='Zapisuję…';$('edStatus').className='status';
+  // nowe stanowiska dostają id na serwerze – zachowaj powiązania przez tymczasowe id
+  try{
+    const r=await api('lokalSave',{slug:ED.slug,config:{name:ED.name,positions:ED.positions,staff:ED.staff,rules:ED.rules}});
+    const st=ED.status;ED=r.lokal;ED.status=ED.status||st;dirty=false;
+    $('edTitle').textContent=ED.name;renderAll();
+    $('edStatus').textContent='Zapisane. Nowi pracownicy mają już PIN-y.';$('edStatus').className='status ok';
+  }catch(x){$('edStatus').textContent=x.message;$('edStatus').className='status err'}
+  finally{btn.disabled=false}
+};
+$('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(`${location.origin}/l/${ED.slug}`);$('copyLink').textContent='Skopiowane'}catch(e){}};
+addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
+boot().catch(()=>{show('vAuth');authTab('fLogin')});
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+DirectoryIndex index.html
+Options -Indexes
+RewriteEngine On
+# panel szefa i grafik lokalu
+RewriteRule ^panel/?$ app/panel.html [L]
+RewriteRule ^l/([a-z0-9-]+)/?$ app/grafik.html [L]

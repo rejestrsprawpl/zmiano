@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Grafik · Zmiano</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/app/app.css">
+</head>
+<body>
+
+<!-- logowanie -->
+<section id="loginView" class="center" hidden>
+  <a class="logo" href="/">zmiano<i></i></a>
+  <div class="panel">
+    <div><h1 id="lkName">Grafik</h1><p class="hint">Wybierz swoje imię i wpisz PIN od szefa</p></div>
+    <div class="people" id="loginPeople"></div>
+    <form id="loginForm" class="row" hidden>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="PIN" aria-label="PIN" style="max-width:140px;font-size:20px;letter-spacing:.3em;text-align:center">
+      <button class="primary" type="submit">Wejdź</button>
+    </form>
+    <span class="status err" id="loginErr"></span>
+    <p class="hint">Jesteś szefem tego lokalu? <a id="bossLink" href="/panel">Zaloguj się do panelu</a></p>
+  </div>
+</section>
+<section id="errView" class="center" hidden>
+  <a class="logo" href="/">zmiano<i></i></a>
+  <div class="panel"><h2 id="errTitle">Nie ma takiego lokalu</h2><p class="muted" id="errText">Sprawdź link, który dostałeś od szefa.</p></div>
+</section>
+
+<!-- aplikacja -->
+<div class="wrap" id="appView" hidden>
+  <header class="top">
+    <div><a class="logo" href="/">zmiano<i></i></a></div>
+    <div class="row">
+      <button id="prevM" aria-label="Poprzedni miesiąc">‹</button>
+      <b id="mLabel" style="min-width:140px;text-align:center;font:800 20px var(--f-display)"></b>
+      <button id="nextM" aria-label="Następny miesiąc">›</button>
+    </div>
+    <div class="row"><span class="hint" id="whoName"></span><a id="panelLink" class="hint" href="/panel" hidden>Panel lokalu</a><button id="logout">Wyloguj</button></div>
+  </header>
+  <h1 id="lkTitle"></h1>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tPrefs" aria-selected="true">Dyspozycyjność</button>
+    <button role="tab" id="tPlan" aria-selected="false">Grafik</button>
+  </div>
+
+  <!-- dyspozycyjność -->
+  <section id="pPrefs" class="panel">
+    <div class="howto" id="howto" hidden>
+      <h3>Co masz zrobić</h3>
+      <ol>
+        <li>Sprawdź u góry, czy to dobry miesiąc.</li>
+        <li>Wpisz, ile dni chcesz przepracować. Puste pola = to, co ustaliłeś z szefem.</li>
+        <li id="howtoCal">W kalendarzu stuknij dzień raz: chcesz pracować (zielony). Drugi raz: nie możesz (czerwony). Trzeci raz: obojętnie.</li>
+        <li>Kliknij „Zapisz”. Gotowy grafik zobaczysz w zakładce „Grafik”.</li>
+      </ol>
+    </div>
+    <div id="pickWrap" hidden><h2>Czyje preferencje edytujesz?</h2><div class="people" id="people" style="margin-top:10px"></div></div>
+    <div class="dl" id="dlBanner" hidden></div>
+    <div id="form" hidden style="display:flex;flex-direction:column;gap:14px">
+      <h2 id="formTitle"></h2>
+      <div class="grid2">
+        <div class="f" style="display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:600">
+          <span>Ile dni chcę przepracować</span>
+          <div class="row" style="flex-wrap:nowrap"><input type="number" id="fMin" min="0" max="31" placeholder="od" aria-label="Od"><span>–</span><input type="number" id="fMax" min="0" max="31" placeholder="do" aria-label="Do"></div>
+          <span id="fDef" style="font-weight:400"></span>
+        </div>
+        <label class="f">Rytm pracy
+          <select id="fRhythm"><option value="">Obojętnie</option><option>1+1</option><option>2+1</option><option>2+2</option><option>3+1</option><option>3+2</option><option>3+3</option><option>4+1</option><option>4+2</option><option>4+3</option></select>
+        </label>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px"><h3 id="calTitle">Moje dni</h3><p class="hint" id="calHint"></p><div class="cal" id="cal"></div></div>
+      <label class="f">Uwagi (opcjonalnie)<textarea id="fNote" placeholder="np. 14-go mogę tylko do 18"></textarea></label>
+      <div class="row"><button class="primary" id="savePrefs">Zapisz</button><span class="status" id="prefStatus"></span></div>
+    </div>
+  </section>
+
+  <!-- grafik -->
+  <section id="pPlan" class="panel" hidden>
+    <div class="row" style="justify-content:space-between">
+      <div><h2>Grafik na <span id="mLabel2"></span></h2><p class="hint" id="planInfo"></p></div>
+      <div class="row" id="bossBtns"><button id="genBtn" class="primary">Wygeneruj grafik</button><button id="savePlan" class="dark" disabled>Zapisz grafik</button></div>
+    </div>
+    <div class="row"><button id="pdfBtn">Pobierz PDF (A4)</button><button id="shareBtn" hidden>Wyślij grafik</button><button id="printBtn">Drukuj</button><span class="hint" id="printHint"></span></div>
+
+    <details id="monthBox" hidden><summary style="cursor:pointer;font-weight:700">Ustawienia miesiąca: termin wpisywania, dni zamknięte</summary><div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
+    <div class="box" id="dlBox" hidden>
+      <b>Termin wpisywania dyspozycyjności</b>
+      <div class="row"><input type="date" id="dlInput" style="max-width:190px"><button id="dlSave">Ustaw termin</button><button id="dlClear">Bez terminu</button></div>
+      <div class="row"><span class="hint" id="missing"></span><button id="remindBtn">Skopiuj przypomnienie</button></div>
+      <span class="status" id="dlStatus"></span>
+    </div>
+    <div class="box" id="shutBox" hidden>
+      <div><b>Dni zamknięte</b> <span class="hint">Stuknij dzień, w który lokal nie działa. Gotowy grafik dopasuje się sam.</span></div>
+      <div class="cal" id="shutCal"></div><span class="status" id="shutStatus"></span>
+    </div></div></details>
+
+    <div class="chips" id="summary"></div>
+    <div class="legend" id="legend"></div>
+    <div class="tablewrap"><table class="sheet" id="sheet"></table></div>
+    <div class="notes" id="notes"></div>
+
+    <details id="manualBox" hidden>
+      <summary style="cursor:pointer;font-weight:700">Edytuj grafik ręcznie</summary>
+      <p class="hint" style="margin:8px 0">Stuknij kratkę w tabeli albo wybierz osoby poniżej. Po zmianach kliknij „Zapisz grafik”.</p>
+      <div class="days" id="days"></div>
+    </details>
+    <details id="clearBox" hidden>
+      <summary style="cursor:pointer;font-weight:700">Wyczyść miesiąc</summary>
+      <div class="row" style="margin-top:10px"><button id="clrPrefs" class="warn">Wyczyść dyspozycje wszystkich</button><button id="clrPlan" class="warn">Usuń zapisany grafik</button><span class="status" id="clrStatus"></span></div>
+    </details>
+    <details><summary style="cursor:pointer;font-weight:700">Zasady lokalu</summary><ul id="rulesList" class="hint" style="margin:8px 0 0"></ul></details>
+  </section>
+</div>
+<div id="printSheet" aria-hidden="true"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/app/engine.js"></script>
+<script>
+const Z=window.ZmianoEngine;
+const $=id=>document.getElementById(id);
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MONTHS=['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+const WD=['nd','pn','wt','śr','cz','pt','sb'];
+const WDN=['niedziele','poniedziałki','wtorki','środy','czwartki','piątki','soboty'];
+const PAL=[['#fbe1d8','#c84a2c'],['#e3ecd3','#4d6d24'],['#dce7fb','#2c55b5'],['#efe0f7','#7a3aa0'],['#fdeccc','#a3620a'],['#d8f1ee','#1d7a6d'],['#f2e4dc','#7b4a2e'],['#e6e6e6','#333']];
+const slug=(location.pathname.match(/\/l\/([a-z0-9-]+)/)||[])[1]||new URLSearchParams(location.search).get('l')||'';
+
+const now=new Date();let cur={y:now.getFullYear(),m:now.getMonth()+1};if(cur.m===12)cur={y:cur.y+1,m:0};
+let L=null,ME=null,loginWho=null;
+let state={prefs:{},plan:null,draft:null,closed:new Set(),deadline:null,sel:null,blocked:new Set(),want:new Set()};
+const mKey=()=>`${cur.y}-${String(cur.m+1).padStart(2,'0')}`;
+const nDays=()=>new Date(cur.y,cur.m+1,0).getDate();
+const wday=d=>new Date(cur.y,cur.m,d).getDay();
+const isWe=d=>{const w=wday(d);return w===0||w===6};
+const posById=id=>L.positions.find(p=>p.id===id);
+const posIdx=id=>L.positions.findIndex(p=>p.id===id);
+const staffById=id=>L.staff.find(s=>s.id===id);
+const isOpenWd=d=>(L.rules.openWd||[0,1,2,3,4,5,6]).includes(wday(d));
+const isClosed=d=>state.closed.has(d)||!isOpenWd(d);
+const slots=()=>Z.slotsOf(L.positions);
+
+async function api(action,body,query=''){
+  const r=await fetch(`/app/api.php?action=${action}${query}`,{method:body?'POST':'GET',credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401&&!['gLogin'].includes(action)){showLogin();throw new Error(j.error||'Zaloguj się ponownie.')}
+  if(!r.ok)throw new Error(j.error||'Błąd serwera');
+  return j;
+}
+function eff(id){
+  const s=staffById(id),p=state.prefs[id]||{},has=p.daysMin!=null||p.daysMax!=null;
+  const min=has?(p.daysMin??p.daysMax):s.min??null,max=has?(p.daysMax??p.daysMin):(s.max??s.min??null);
+  return{min,max,blocked:new Set(p.blocked||[]),want:new Set(p.want||[]),rhythm:p.rhythm||null,noWd:s.noWd||[],picksOwn:!!s.picksOwn};
+}
+const rangeTxt=e=>e.min==null?'–':(e.min===e.max?String(e.min):`${e.min}–${e.max}`);
+const posNames=s=>(s.positions||[]).map(id=>posById(id)?.name).filter(Boolean).join(', ')||'bez stanowiska';
+
+/* ---------- logowanie ---------- */
+function showErr(t,x){$('loginView').hidden=true;$('appView').hidden=true;$('errView').hidden=false;$('errTitle').textContent=t;$('errText').textContent=x}
+function showLogin(){
+  ME=null;$('appView').hidden=true;$('loginView').hidden=false;
+  $('lkName').textContent=L?L.name:'Grafik';
+  $('bossLink').href='/panel?next='+encodeURIComponent(location.pathname);
+  const box=$('loginPeople');box.innerHTML='';
+  (L?.staff||[]).forEach(s=>{
+    const b=document.createElement('button');b.className='person';b.type='button';
+    b.setAttribute('aria-pressed',loginWho===s.id);
+    b.innerHTML=`<span>${esc(s.name)}</span><small>${esc(posNames(s))}</small>`;
+    b.onclick=()=>{loginWho=s.id;$('loginErr').textContent='';$('loginForm').hidden=false;showLogin();$('pin').focus()};
+    box.appendChild(b);
+  });
+}
+$('loginForm').onsubmit=async ev=>{
+  ev.preventDefault();if(!loginWho)return;
+  try{const r=await api('gLogin',{slug,staff:loginWho,pin:$('pin').value.trim()});$('pin').value='';ME=r.me;startApp()}
+  catch(e){$('loginErr').textContent=e.message;$('pin').select()}
+};
+$('logout').onclick=async()=>{
+  try{ME?.boss?await api('logout',{}):await api('gLogout',{slug})}catch(e){}
+  loginWho=null;$('loginForm').hidden=true;showLogin();
+};
+
+/* ---------- start ---------- */
+function startApp(){
+  $('loginView').hidden=true;$('appView').hidden=false;
+  $('lkTitle').textContent=L.name;document.title=`Grafik ${L.name} · Zmiano`;
+  $('whoName').textContent=ME.boss?`Szef: ${ME.name}`:ME.name;
+  $('panelLink').hidden=!ME.boss;
+  ['bossBtns','monthBox','dlBox','shutBox','manualBox','clearBox'].forEach(id=>$(id).hidden=!ME.boss);
+  $('pickWrap').hidden=!ME.boss;$('howto').hidden=ME.boss;
+  state.sel=ME.boss?state.sel:ME.id;
+  setMonth();load(true);
+}
+function setMonth(){const t=`${MONTHS[cur.m]} ${cur.y}`;$('mLabel').textContent=t;$('mLabel2').textContent=t}
+async function load(full){
+  const m=mKey();
+  try{
+    const r=await api('gState',null,`&slug=${slug}&month=${m}`);
+    if(m!==mKey())return;
+    L=r.lokal;ME=r.me;
+    const before=JSON.stringify(state.prefs[state.sel]||null);
+    state.prefs=Array.isArray(r.prefs)?{}:(r.prefs||{});state.plan=r.plan||null;
+    state.closed=new Set(r.closed||[]);state.deadline=r.deadline||null;
+    if(state.sel&&!staffById(state.sel))state.sel=null;
+    renderPeople();
+    if(full||JSON.stringify(state.prefs[state.sel]||null)!==before)loadForm();
+    renderDeadline();renderShut();renderRules();renderPlan();
+    $('genBtn').textContent=state.plan?'Wygeneruj ponownie':'Wygeneruj grafik';
+  }catch(e){}
+}
+function changeMonth(dlt){cur.m+=dlt;if(cur.m<0){cur.m=11;cur.y--}if(cur.m>11){cur.m=0;cur.y++}state.draft=null;setMonth();load(true)}
+$('prevM').onclick=()=>changeMonth(-1);$('nextM').onclick=()=>changeMonth(1);
+function tab(w){const p=w==='prefs';$('tPrefs').setAttribute('aria-selected',p);$('tPlan').setAttribute('aria-selected',!p);$('pPrefs').hidden=!p;$('pPlan').hidden=p}
+$('tPrefs').onclick=()=>tab('prefs');$('tPlan').onclick=()=>tab('plan');
+
+/* ---------- dyspozycyjność ---------- */
+function renderPeople(){
+  if(!ME.boss)return;
+  const box=$('people');box.innerHTML='';
+  L.staff.forEach(s=>{
+    const b=document.createElement('button');b.className='person';b.type='button';b.setAttribute('aria-pressed',state.sel===s.id);
+    b.innerHTML=`<span><span class="dot ${state.prefs[s.id]?'':'no'}"></span>${esc(s.name)}</span><small>${esc(posNames(s))}</small>`;
+    b.onclick=()=>{state.sel=s.id;renderPeople();loadForm()};
+    box.appendChild(b);
+  });
+}
+function loadForm(){
+  const s=state.sel&&staffById(state.sel);
+  if(!s){$('form').hidden=true;return}
+  $('form').hidden=false;
+  const p=state.prefs[s.id]||{};
+  $('formTitle').textContent=ME.boss?s.name:`Twoja dyspozycyjność na ${MONTHS[cur.m]}`;
+  $('fMin').value=p.daysMin??'';$('fMax').value=p.daysMax??'';
+  const fixed=[];
+  if(s.min!=null)fixed.push(`${rangeTxt({min:s.min,max:s.max??s.min})} dni`);
+  if((s.noWd||[]).length)fixed.push('bez: '+s.noWd.map(w=>WDN[w]).join(', '));
+  $('fDef').textContent=fixed.length?`Ustalone z szefem: ${fixed.join('; ')}.`:'Puste = grafik rozłoży dni równo.';
+  $('fRhythm').value=p.rhythm||'';$('fNote').value=p.note||'';
+  state.blocked=new Set(p.blocked||[]);state.want=new Set(p.want||[]);
+  if(s.picksOwn){$('calTitle').textContent='Dni, w które chcę pracować';$('calHint').textContent='Pracujesz tylko w dni zaznaczone na zielono.';$('howtoCal').textContent='Stuknij w kalendarzu dni, w które chcesz pracować.'}
+  else{$('calTitle').textContent='Moje dni';$('calHint').textContent='Raz: chcę pracować (zielony). Drugi raz: nie mogę (czerwony). Trzeci raz: obojętnie.'}
+  $('prefStatus').textContent=p.updatedAt?'Zapisane: '+new Date(p.updatedAt).toLocaleString('pl-PL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';$('prefStatus').className='status';
+  renderCal();renderDeadline();
+}
+function renderCal(){
+  const c=$('cal');c.innerHTML='';const s=staffById(state.sel);
+  ['pn','wt','śr','cz','pt','sb','nd'].forEach(h=>{const e=document.createElement('div');e.className='h';e.textContent=h;c.appendChild(e)});
+  for(let i=0;i<(wday(1)+6)%7;i++)c.appendChild(document.createElement('div'));
+  for(let d=1;d<=nDays();d++){
+    const b=document.createElement('button');b.type='button';b.textContent=d;
+    if(isClosed(d)){b.className='shut';b.disabled=true;b.title='Lokal zamknięty';c.appendChild(b);continue}
+    const fixedOff=(s.noWd||[]).includes(wday(d));
+    const st=fixedOff?'off':state.want.has(d)?'want':state.blocked.has(d)?'off':'';
+    b.className=(isWe(d)?'we ':'')+st;
+    b.setAttribute('aria-label',`${d}: ${st==='want'?'chcę pracować':st==='off'?'nie mogę':'obojętnie'}`);
+    if(fixedOff)b.disabled=true;
+    else b.onclick=()=>{
+      if(state.want.has(d)){state.want.delete(d);if(!s.picksOwn)state.blocked.add(d)}
+      else if(state.blocked.has(d))state.blocked.delete(d);
+      else state.want.add(d);
+      renderCal();
+    };
+    c.appendChild(b);
+  }
+}
+$('savePrefs').onclick=async()=>{
+  if(!state.sel)return;
+  const num=v=>{v=v.trim();return v===''?null:Math.max(0,Math.min(31,parseInt(v,10)||0))};
+  const body={slug,month:mKey(),person:state.sel,daysMin:num($('fMin').value),daysMax:num($('fMax').value),rhythm:$('fRhythm').value||null,
+    blocked:[...state.blocked],want:[...state.want],note:$('fNote').value.trim()};
+  $('savePrefs').disabled=true;$('prefStatus').textContent='Zapisuję…';$('prefStatus').className='status';
+  try{const r=await api('gSavePrefs',body);state.prefs[state.sel]=r.pref;renderPeople();renderPlan();renderDeadline();$('prefStatus').textContent='Zapisane';$('prefStatus').className='status ok'}
+  catch(e){$('prefStatus').textContent=e.message;$('prefStatus').className='status err'}
+  finally{$('savePrefs').disabled=false;renderDeadline()}
+};
+
+/* ---------- termin i przypomnienie ---------- */
+const fmtD=iso=>{const [y,m,d]=iso.split('-');return `${d}.${m}`};
+const todayIso=()=>{const t=new Date();return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`};
+function renderDeadline(){
+  const dl=state.deadline,late=dl&&todayIso()>dl,b=$('dlBanner');
+  if(!ME.boss&&dl){
+    b.hidden=false;b.className='dl'+(late?' late':'');
+    const left=Math.round((new Date(dl+'T23:59:59')-new Date())/864e5);
+    b.textContent=late?`Termin wpisywania na ${MONTHS[cur.m]} minął (${fmtD(dl)}). Zmiany zgłoś szefowi.`:`Wpisz dyspozycyjność do ${fmtD(dl)} włącznie (zostało dni: ${Math.max(0,left)}).`;
+    $('savePrefs').disabled=!!late;
+  }else b.hidden=true;
+  if(ME.boss){
+    $('dlInput').value=dl||'';
+    const miss=L.staff.filter(s=>!state.prefs[s.id]).map(s=>s.name);
+    $('missing').textContent=miss.length?`Nie wpisali jeszcze: ${miss.join(', ')}.`:'Wszyscy wpisali dyspozycyjność.';
+    $('remindBtn').hidden=!miss.length;
+  }
+}
+async function saveDeadline(v){
+  try{const r=await api('gSetDeadline',{slug,month:mKey(),deadline:v});state.deadline=r.deadline;renderDeadline();$('dlStatus').textContent=r.deadline?`Termin: ${fmtD(r.deadline)}.`:'Termin usunięty.';$('dlStatus').className='status ok'}
+  catch(e){$('dlStatus').textContent=e.message;$('dlStatus').className='status err'}
+}
+$('dlSave').onclick=()=>{if($('dlInput').value)saveDeadline($('dlInput').value)};
+$('dlClear').onclick=()=>saveDeadline(null);
+$('remindBtn').onclick=async()=>{
+  const miss=L.staff.filter(s=>!state.prefs[s.id]).map(s=>s.name);
+  const txt=`Przypomnienie: wpisz swoją dyspozycyjność na ${MONTHS[cur.m]}${state.deadline?` do ${fmtD(state.deadline)}`:''} na ${location.origin}/l/${slug} (imię + PIN). Brakuje jeszcze: ${miss.join(', ')}.`;
+  try{await navigator.clipboard.writeText(txt);$('dlStatus').textContent='Skopiowane. Wklej na grupę ekipy.';$('dlStatus').className='status ok'}
+  catch(e){$('dlStatus').textContent=txt;$('dlStatus').className='status'}
+};
+
+/* ---------- dni zamknięte ---------- */
+function renderShut(){
+  if(!ME.boss)return;
+  const c=$('shutCal');c.innerHTML='';
+  ['pn','wt','śr','cz','pt','sb','nd'].forEach(h=>{const e=document.createElement('div');e.className='h';e.textContent=h;c.appendChild(e)});
+  for(let i=0;i<(wday(1)+6)%7;i++)c.appendChild(document.createElement('div'));
+  for(let d=1;d<=nDays();d++){
+    const b=document.createElement('button');b.type='button';b.textContent=d;
+    if(!isOpenWd(d)){b.disabled=true;b.title='Ten dzień tygodnia jest zawsze zamknięty (ustawienia lokalu)';c.appendChild(b);continue}
+    const on=state.closed.has(d);b.className=(isWe(d)?'we ':'')+(on?'closedOn':'');b.setAttribute('aria-pressed',on);
+    b.onclick=()=>toggleShut(d);c.appendChild(b);
+  }
+}
+let shutBusy=false;
+async function toggleShut(d){
+  if(shutBusy)return;shutBusy=true;const before=new Set(state.closed);
+  state.closed.has(d)?state.closed.delete(d):state.closed.add(d);
+  const nowClosed=state.closed.has(d);renderShut();
+  try{
+    await api('gSetClosed',{slug,month:mKey(),closed:[...state.closed]});
+    let msg=`${d}.${String(cur.m+1).padStart(2,'0')} ${nowClosed?'zamknięty':'otwarty'}.`;
+    if(currentDays()){
+      $('shutStatus').textContent=msg+' Dopasowuję grafik…';await new Promise(r=>setTimeout(r,30));
+      const base=currentDays().map((x,i)=>isClosed(i+1)||!x?null:x);
+      state.draft=run(base);
+      msg+=' Grafik dopasowany: zmienione kratki mają pomarańczową ramkę. Sprawdź i kliknij „Zapisz grafik”.';
+    }
+    $('shutStatus').textContent=msg;$('shutStatus').className='status ok';
+  }catch(e){state.closed=before;$('shutStatus').textContent=e.message;$('shutStatus').className='status err'}
+  finally{shutBusy=false;renderShut();renderPlan();if(state.sel)renderCal()}
+}
+
+/* ---------- grafik ---------- */
+const currentDays=()=>state.draft||state.plan?.days||null;
+function run(base){
+  return Z.solve({year:cur.y,month0:cur.m,positions:L.positions,staff:L.staff,prefs:state.prefs,rules:L.rules,closed:state.closed,base});
+}
+$('genBtn').onclick=()=>{
+  $('genBtn').disabled=true;$('genBtn').textContent='Układam…';
+  setTimeout(()=>{state.draft=run(null);$('genBtn').disabled=false;$('genBtn').textContent='Wygeneruj ponownie';renderPlan()},30);
+};
+$('savePlan').onclick=async()=>{
+  if(!state.draft)return;
+  const days=state.draft.map((x,i)=>isClosed(i+1)?null:x);
+  if(days.some((x,i)=>!x&&!isClosed(i+1))){$('planInfo').textContent='Najpierw obsadź wszystkie otwarte dni (kliknij „Wygeneruj grafik”).';return}
+  $('savePlan').disabled=true;$('savePlan').textContent='Zapisuję…';
+  try{const r=await api('gSavePlan',{slug,month:mKey(),days});state.plan=r.plan;state.draft=null}
+  catch(e){$('planInfo').textContent=e.message}
+  finally{$('savePlan').textContent='Zapisz grafik';renderPlan()}
+};
+function cellOf(day,id){const p=Z.slotOf(day,id);return p?posById(p):null}
+function renderPlan(){
+  const n=nDays(),days=currentDays(),filled=L.staff.filter(s=>state.prefs[s.id]).length;
+  $('planInfo').textContent=!ME.boss&&!state.plan?'Szef jeszcze nie zapisał grafiku na ten miesiąc.':
+    `Dyspozycyjność podało ${filled} z ${L.staff.length} osób.`+(state.draft?' Masz niezapisane zmiany.':state.plan?' Pokazany jest zapisany grafik.':'');
+  $('savePlan').disabled=!state.draft;
+  // legenda
+  $('legend').innerHTML=L.positions.map((p,i)=>`<span><b style="background:${PAL[i%8][0]};color:${PAL[i%8][1]}">${esc(p.short)}</b> ${esc(p.name)}</span>`).join('')+
+    '<span><b style="color:var(--bad)">✕</b> nie może</span><span><b style="color:var(--ok)">○</b> chciał pracować</span>';
+  // tabela, osoby pogrupowane po pierwszym stanowisku
+  let h='<thead><tr><th class="name">Imię</th>';
+  for(let d=1;d<=n;d++)h+=`<th class="${isWe(d)?'we':''}"><b>${d}</b>${WD[wday(d)]}</th>`;
+  h+='<th>Suma</th><th>Ma mieć</th></tr></thead><tbody>';
+  const notes=[],chips=[];
+  const groups=L.positions.map(p=>({p,list:L.staff.filter(s=>(s.positions||[])[0]===p.id)}));
+  groups.push({p:{name:'Bez stanowiska'},list:L.staff.filter(s=>!(s.positions||[]).length)});
+  const maxRun=L.rules.maxRun||5;
+  for(const g of groups){
+    if(!g.list.length)continue;
+    h+=`<tr class="grow"><td class="name">${esc(g.p.name)}</td><td colspan="${n+2}"></td></tr>`;
+    for(const s of g.list){
+      const e=eff(s.id);let row=`<tr><td class="name">${esc(s.name)}</td>`,cnt=0,runL=0,mx=0;
+      for(let d=1;d<=n;d++){
+        const x=days?.[d-1];let cls=isWe(d)?'we':'',txt='',style='';
+        const off=e.blocked.has(d)||e.noWd.includes(wday(d));
+        if(isClosed(d)||(days&&x===null)){cls='closed';runL=0}
+        else{
+          const p=cellOf(x,s.id);
+          const wasP=state.draft&&state.plan?cellOf(state.plan.days[d-1],s.id):undefined;
+          if(wasP!==undefined&&(wasP?.id||null)!==(p?.id||null))cls+=' chg';
+          if(p){const i=posIdx(p.id);cls+=' pc';style=`background:${PAL[i%8][0]};color:${PAL[i%8][1]}`;txt=p.short;cnt++;runL++;mx=Math.max(mx,runL);if(off){cls+=' bad';notes.push(`${s.name} pracuje ${d}. mimo że nie może.`)}}
+          else{runL=0;if(off){cls+=' bl';txt='✕'}else if(e.want.has(d)){cls+=' miss';txt='○'}}
+        }
+        row+=`<td class="${cls}" style="${style}" data-d="${d}">${txt}</td>`;
+      }
+      row+=`<td><b>${days?cnt:'–'}</b></td><td>${rangeTxt(e)}</td></tr>`;h+=row;
+      if(days){
+        if(mx>maxRun)notes.push(`${s.name} ma ${mx} dni pracy z rzędu (limit ${maxRun}).`);
+        if(e.picksOwn)e.want.forEach(d=>{if(isClosed(d))notes.push(`${s.name} wybrał ${d}., a lokal jest wtedy zamknięty.`);else if(days[d-1]&&!Z.works(days[d-1],s.id))notes.push(`${s.name} wybrał ${d}., ale nie ma go w grafiku.`)});
+        if(e.min!=null&&(cnt<e.min||cnt>e.max))chips.push(`<span class="chip warn">${esc(s.name)}: ${cnt} zamiast ${rangeTxt(e)}</span>`);
+        else chips.push(`<span class="chip ${e.min!=null?'good':''}">${esc(s.name)}: ${cnt}</span>`);
+      }
+    }
+  }
+  $('sheet').innerHTML=h+'</tbody>';$('sheet').classList.toggle('edit',!!ME.boss);
+  // kontrola dni: puste stanowiska, pary
+  if(days){
+    const sl=slots();
+    days.forEach((x,i)=>{
+      const d=i+1;if(isClosed(d))return;
+      if(!x){notes.push(`${d}. nie jest obsadzony.`);return}
+      sl.forEach(s=>{if(!x[s.key])notes.push(`${d}.: brak osoby na stanowisku ${posById(s.pos).name}.`)});
+      for(const p of L.rules.pairs||[])if(Z.works(x,p.a)&&Z.works(x,p.b)&&Z.slotOf(x,p.b)!==p.bPos)notes.push(`${d}.: ${staffById(p.b)?.name} powinien być na stanowisku ${posById(p.bPos)?.name}.`);
+      for(const p of L.rules.apart||[])if(Z.works(x,p.a)&&Z.works(x,p.b))notes.push(`${d}.: ${staffById(p.a)?.name} i ${staffById(p.b)?.name} nie powinni pracować razem.`);
+    });
+  }
+  let openN=0;for(let d=1;d<=n;d++)if(!isClosed(d))openN++;
+  chips.unshift(`<span class="chip">Dni otwarte: ${openN}</span>`);
+  $('summary').innerHTML=chips.join('');
+  $('notes').innerHTML=[...new Set(notes)].map(x=>`<div>${esc(x)}</div>`).join('');
+  if(ME.boss)renderDays();
+}
+function renderDays(){
+  const box=$('days');box.innerHTML='';const days=currentDays(),n=nDays(),sl=slots();
+  for(let d=1;d<=n;d++){
+    const x=days?.[d-1],el=document.createElement('div');el.className='day';el.id='day-'+d;
+    el.innerHTML=`<span class="d">${d} ${WD[wday(d)]}</span>`;
+    const sels=document.createElement('div');sels.className='sels';
+    if(isClosed(d)){sels.innerHTML='<span class="hint">zamknięte</span>'}
+    else sl.forEach((s,k)=>{
+      const p=posById(s.pos),sel=document.createElement('select');sel.setAttribute('aria-label',`${d}. ${p.name}`);
+      const el2=L.staff.filter(st=>(st.positions||[]).includes(s.pos));
+      sel.innerHTML=`<option value="">${esc(p.name)}: brak</option>`+el2.map(st=>`<option value="${st.id}">${esc(p.short)} · ${esc(st.name)}</option>`).join('');
+      sel.value=x?.[s.key]||'';
+      sel.onchange=()=>{
+        const base=(currentDays()||new Array(n).fill(null)).map(y=>y&&{...y});
+        base[d-1]=base[d-1]||{};base[d-1][s.key]=sel.value||null;
+        state.draft=base;renderPlan();
+        const again=$('day-'+d);again?.classList.add('flash');
+      };
+      sels.appendChild(sel);
+    });
+    el.appendChild(sels);box.appendChild(el);
+  }
+}
+$('sheet').addEventListener('click',ev=>{
+  if(!ME?.boss)return;const td=ev.target.closest('td[data-d]');if(!td)return;
+  const d=+td.dataset.d;if(isClosed(d))return;
+  if(!currentDays()){$('planInfo').textContent='Najpierw kliknij „Wygeneruj grafik”.';return}
+  $('manualBox').open=true;const el=$('day-'+d);if(!el)return;
+  document.querySelectorAll('.day.flash').forEach(x=>x.classList.remove('flash'));
+  el.classList.add('flash');el.scrollIntoView({behavior:'smooth',block:'center'});
+});
+
+/* ---------- czyszczenie ---------- */
+function armClear(btn,what,label){
+  let armed=false,t=null;
+  btn.onclick=async()=>{
+    if(!armed){armed=true;btn.textContent='Na pewno? Kliknij jeszcze raz';t=setTimeout(()=>{armed=false;btn.textContent=label},5000);return}
+    clearTimeout(t);armed=false;btn.disabled=true;
+    try{await api('gClear',{slug,month:mKey(),prefs:what==='prefs',plan:what==='plan'});if(what==='plan')state.draft=null;$('clrStatus').textContent='Zrobione.';$('clrStatus').className='status ok';await load(true)}
+    catch(e){$('clrStatus').textContent=e.message;$('clrStatus').className='status err'}
+    finally{btn.disabled=false;btn.textContent=label}
+  };
+}
+armClear($('clrPrefs'),'prefs','Wyczyść dyspozycje wszystkich');armClear($('clrPlan'),'plan','Usuń zapisany grafik');
+
+/* ---------- zasady (opis) ---------- */
+function renderRules(){
+  const r=L.rules,li=[];
+  li.push('Na każdej zmianie: '+L.positions.map(p=>`${p.name}${p.count>1?' ×'+p.count:''}`).join(', ')+'.');
+  li.push(`Nikt nie pracuje więcej niż ${r.maxRun||5} dni z rzędu.`);
+  const closedWd=[0,1,2,3,4,5,6].filter(w=>!(r.openWd||[0,1,2,3,4,5,6]).includes(w));
+  if(closedWd.length)li.push('Lokal zamknięty w: '+closedWd.map(w=>WDN[w]).join(', ')+'.');
+  (r.pairs||[]).forEach(p=>li.push(`Gdy ${staffById(p.a)?.name} i ${staffById(p.b)?.name} są razem, ${staffById(p.b)?.name} idzie na: ${posById(p.bPos)?.name}.`));
+  (r.apart||[]).forEach(p=>li.push(`${staffById(p.a)?.name} i ${staffById(p.b)?.name} nie pracują razem.`));
+  L.staff.forEach(s=>{const x=[];if(s.min!=null)x.push(`${rangeTxt({min:s.min,max:s.max??s.min})} dni`);if((s.noWd||[]).length)x.push('nie pracuje w '+s.noWd.map(w=>WDN[w]).join(', '));if(s.picksOwn)x.push('sam wybiera dni');if(x.length)li.push(`${s.name}: ${x.join(', ')}.`)});
+  $('rulesList').innerHTML=li.map(x=>`<li>${esc(x)}</li>`).join('');
+}
+
+/* ---------- PDF / druk ---------- */
+function sheetCanvas(){
+  const n=nDays(),days=currentDays();if(!days)return null;
+  const W=3508,H=2480,M=110,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const F='"Instrument Sans",Arial,sans-serif';
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#000';x.textBaseline='middle';
+  x.font=`700 76px ${F}`;x.fillText(`Grafik · ${MONTHS[cur.m]} ${cur.y} · ${L.name}`,M,M+30);
+  x.font=`400 34px ${F}`;x.fillStyle='#444';x.fillText((state.draft?'Wersja robocza (niezapisana)':'Stan na '+new Date().toLocaleDateString('pl-PL'))+' · zmiano.pl',M,M+105);
+  const top=M+170,nameW=360,sumW=150,cw=(W-2*M-nameW-sumW)/n,headH=120;
+  const rowH=Math.min(150,(H-top-M-150-headH)/Math.max(1,L.staff.length));
+  const line=(a,b,c2,d)=>{x.beginPath();x.moveTo(a,b);x.lineTo(c2,d);x.stroke()};
+  x.strokeStyle='#555';x.lineWidth=3;let y=top;
+  for(let d=1;d<=n;d++){const cx=M+nameW+(d-1)*cw;if(isWe(d)){x.fillStyle='#e8e8e8';x.fillRect(cx,y,cw,headH)}}
+  x.fillStyle='#000';x.textAlign='center';
+  for(let d=1;d<=n;d++){const cx=M+nameW+(d-.5)*cw;x.font=`700 40px ${F}`;x.fillText(String(d),cx,y+42);x.font=`400 28px ${F}`;x.fillText(WD[wday(d)],cx,y+88)}
+  x.font=`700 34px ${F}`;x.fillText('Suma',W-M-sumW/2,y+headH/2);x.textAlign='left';x.fillText('Imię',M+20,y+headH/2);y+=headH;
+  for(const s of L.staff){
+    let cnt=0;
+    for(let d=1;d<=n;d++){
+      const cx=M+nameW+(d-1)*cw;if(isWe(d)){x.fillStyle='#ececec';x.fillRect(cx,y,cw,rowH)}
+      let t='';if(isClosed(d)||!days[d-1])t='–';else{const p=cellOf(days[d-1],s.id);if(p){t=p.short;cnt++}}
+      if(t){x.fillStyle=t==='–'?'#999':'#000';x.font=`700 ${Math.min(52,rowH*.45)}px ${F}`;x.textAlign='center';x.fillText(t,cx+cw/2,y+rowH/2)}
+    }
+    x.fillStyle='#000';x.textAlign='left';x.font=`600 ${Math.min(44,rowH*.4)}px ${F}`;x.fillText(s.name,M+20,y+rowH/2);
+    x.textAlign='center';x.font=`700 ${Math.min(46,rowH*.42)}px ${F}`;x.fillText(String(cnt),W-M-sumW/2,y+rowH/2);
+    y+=rowH;line(M,y,W-M,y);
+  }
+  x.strokeRect(M,top,W-2*M,y-top);line(M,top+headH,W-M,top+headH);
+  for(let d=0;d<=n;d++){const cx=M+nameW+d*cw;line(cx,top,cx,y)}
+  x.textAlign='left';x.fillStyle='#333';x.font=`400 32px ${F}`;
+  x.fillText(L.positions.map(p=>`${p.short} – ${p.name}`).join('    ')+'    – lokal zamknięty',M,y+60);
+  return c;
+}
+function sheetPdf(){const c=sheetCanvas();if(!c)return null;const pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});pdf.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,297,210);return pdf.output('blob')}
+const pdfName=()=>`grafik-${slug}-${mKey()}.pdf`;
+$('pdfBtn').onclick=()=>{
+  if(!window.jspdf){$('printHint').textContent='Nie udało się wczytać generatora PDF. Odśwież stronę.';return}
+  const b=sheetPdf();if(!b){$('printHint').textContent='Nie ma jeszcze grafiku na ten miesiąc.';return}
+  $('printHint').textContent='';const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=pdfName();document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);
+};
+try{if(navigator.canShare&&navigator.canShare({files:[new File(['x'],'t.pdf',{type:'application/pdf'})]}))$('shareBtn').hidden=false}catch(e){}
+$('shareBtn').onclick=async()=>{const b=window.jspdf&&sheetPdf();if(!b){$('printHint').textContent='Nie ma jeszcze grafiku.';return}try{await navigator.share({files:[new File([b],pdfName(),{type:'application/pdf'})],title:'Grafik '+MONTHS[cur.m]})}catch(e){}};
+function buildPrint(){
+  const n=nDays(),days=currentDays();if(!days)return false;
+  let h=`<h1>Grafik · ${MONTHS[cur.m]} ${cur.y} · ${esc(L.name)}</h1><table><colgroup><col style="width:26mm">${'<col>'.repeat(n)}<col style="width:11mm"></colgroup><thead><tr><th>Imię</th>`;
+  for(let d=1;d<=n;d++)h+=`<th class="${isWe(d)?'we':''}">${d}<small>${WD[wday(d)]}</small></th>`;
+  h+='<th>Suma</th></tr></thead><tbody>';
+  L.staff.forEach(s=>{let c=0;h+=`<tr><td class="n">${esc(s.name)}</td>`;for(let d=1;d<=n;d++){let t='';if(isClosed(d)||!days[d-1])t='–';else{const p=cellOf(days[d-1],s.id);if(p){t=p.short;c++}}h+=`<td class="${isWe(d)?'we':''}">${esc(t)}</td>`}h+=`<td><b>${c}</b></td></tr>`});
+  $('printSheet').innerHTML=h+'</tbody></table>';return true;
+}
+$('printBtn').onclick=()=>{if(!buildPrint()){$('printHint').textContent='Nie ma jeszcze grafiku na ten miesiąc.';return}window.print()};
+addEventListener('beforeprint',buildPrint);
+
+/* ---------- wejście ---------- */
+(async()=>{
+  if(!slug){showErr('Nie ma takiego lokalu','Sprawdź link, który dostałeś od szefa.');return}
+  try{
+    const r=await fetch(`/app/api.php?action=gInfo&slug=${slug}`,{credentials:'same-origin'});const j=await r.json();
+    if(!r.ok){showErr(r.status===403?'Lokal czeka na aktywację':'Nie ma takiego lokalu',r.status===403?'Konto lokalu jest jeszcze sprawdzane. Spróbuj później.':'Sprawdź link, który dostałeś od szefa.');return}
+    L=j.lokal;setMonth();
+    if(j.me){ME=j.me;startApp()}else showLogin();
+  }catch(e){showErr('Brak połączenia','Sprawdź internet i odśwież stronę.')}
+  setInterval(()=>{if(ME&&!state.draft&&document.visibilityState==='visible')load(false)},30000);
+})();
+</script>
+</body>
+</html>

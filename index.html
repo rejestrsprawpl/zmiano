@@ -233,15 +233,15 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 
 <nav><div class="in">
   <a class="logo" href="/" aria-label="Zmiano – strona główna">zmiano<i></i></a>
-  <a class="k" href="#kontakt">Kontakt</a>
+  <div style="display:flex;gap:20px;align-items:center"><a class="k" href="#kontakt">Kontakt</a><a class="k" href="/panel">Zaloguj się</a></div>
 </div></nav>
 
 <header class="hero"><div class="in hero-grid">
   <div class="hero-copy">
     <h1>Grafik na cały miesiąc układa się sam</h1>
     <p>Koniec z wieczorem nad kartką i SMS-ami „kto może w sobotę?”. Zasady lokalu ustawiasz raz, a każdy kolejny grafik robi się w kilka minut.</p>
-      <div><a class="btn" href="#kontakt">Chcę grafik dla mojego lokalu</a></div>
-      <span class="note">Dla lokali od 5 do 20 osób. Wdrożenie robimy za Ciebie.</span>
+      <div><a class="btn" href="/panel#rejestracja">Załóż konto lokalu</a></div>
+      <span class="note">Dla lokali od 5 do 20 osób. Pomagamy przy pierwszym grafiku.</span>
   </div>
   <ol class="phones" id="phones">
         <!-- krok 1 -->
@@ -345,11 +345,13 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 <section class="contact" id="kontakt"><div class="in">
   <div style="display:flex;flex-direction:column;gap:18px">
     <h2>Pierwszy grafik ustawiamy razem</h2>
-    <p>Napisz, ile osób u Ciebie pracuje i jakie macie zasady. Wdrożymy lokal, przygotujemy PIN-y i gotową wiadomość dla pracowników. Pierwszy miesiąc sprawdzasz na żywym grafiku.</p>
+    <p>Załóż konto lokalu, dodaj stanowiska i pracowników. Każdy dostaje PIN i gotową wiadomość z linkiem. Po rejestracji odezwiemy się i pomożemy ustawić zasady.</p>
   </div>
   <div class="box">
+    <a class="btn" href="/panel#rejestracja" style="background:var(--ink);color:var(--tape);box-shadow:none">Załóż konto lokalu</a>
+    <span class="small">Wolisz najpierw porozmawiać? Napisz:</span>
     <a class="mail" href="mailto:kontakt@zmiano.pl?subject=Grafik%20dla%20mojego%20lokalu">kontakt@zmiano.pl</a>
-    <span class="small">Pracujesz już w lokalu na Zmiano? Wejdź przez link, który dostałeś od szefa.</span>
+    <span class="small">Pracujesz już w lokalu na Zmiano? Wejdź przez link, który dostałeś od szefa. Szef loguje się <a href="/panel">tutaj</a>.</span>
   </div>
 </div></section>
 
