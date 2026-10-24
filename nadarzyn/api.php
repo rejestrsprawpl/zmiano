@@ -29,7 +29,7 @@ $action = $_GET['action'] ?? ($in['action'] ?? '');
 
 function me(): ?array { return $_SESSION['who'] ?? null; }
 function needLogin(): array { $m = me(); if (!$m) fail('Zaloguj się ponownie.', 401); return $m; }
-function needAdmin(): array { $m = needLogin(); if (empty($m['admin'])) fail('Tylko szef może to zrobić.', 403); return $m; }
+function needAdmin(): array { $m = needLogin(); if (empty($m['admin'])) fail('Tylko manager może to zrobić.', 403); return $m; }
 function monthOk($m): string { if (!is_string($m) || !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $m)) fail('Zły miesiąc.'); return $m; }
 function daysIn(string $m): int { [$y, $mo] = array_map('intval', explode('-', $m)); return (int)date('t', mktime(0, 0, 0, $mo, 1, $y)); }
 function dayList($a, int $n): array {
@@ -99,7 +99,7 @@ switch ($action) {
     attempts(function ($a) use ($who) { unset($a["u:$who"]); return $a; });
     session_regenerate_id(true);
     $_SESSION['who'] = $who === 'szef'
-      ? ['id' => 'szef', 'name' => 'Szef', 'admin' => true]
+      ? ['id' => 'szef', 'name' => 'Manager', 'admin' => true]
       : ['id' => $who, 'name' => $USERS[$who]['name'], 'admin' => false];
     out(['me' => me()]);
 
@@ -119,7 +119,7 @@ switch ($action) {
     if (!isset($USERS[$person])) fail('Nie ma takiej osoby.');
     if (!$m['admin'] && $m['id'] !== $person) fail('Możesz zmieniać tylko swoje preferencje.', 403);
     $dl = load($month)['deadline'];
-    if (!$m['admin'] && $dl && date('Y-m-d') > $dl) fail('Termin wpisywania minął (' . date('d.m', strtotime($dl)) . '). Zmiany zgłoś szefowi.', 403);
+    if (!$m['admin'] && $dl && date('Y-m-d') > $dl) fail('Termin wpisywania minął (' . date('d.m', strtotime($dl)) . '). Zmiany zgłoś managerowi.', 403);
     $n = daysIn($month);
     $mn = numOrNull($in['daysMin'] ?? null); $mx = numOrNull($in['daysMax'] ?? null);
     if ($mn !== null && $mx !== null && $mn > $mx) [$mn, $mx] = [$mx, $mn];

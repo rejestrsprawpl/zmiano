@@ -101,11 +101,11 @@ function who(array $l): ?array {
   $u = me();
   if ($u && $u['status'] === 'active' && canManage($u, $l)) return ['boss' => true, 'id' => 'szef', 'name' => $u['name']];
   $sid = $_SESSION['emp'][$l['slug']] ?? null;
-  foreach ($l['staff'] ?? [] as $s) if ($s['id'] === $sid && !empty($s['active'])) return ['boss' => false, 'id' => $s['id'], 'name' => $s['name']];
+  foreach ($l['staff'] ?? [] as $s) if ($s['id'] === $sid && !empty($s['active'])) return ['boss' => !empty($s['manager']), 'staff' => true, 'id' => $s['id'], 'name' => $s['name']];
   return null;
 }
 function needWho(array $l): array { $w = who($l); if (!$w) fail('Zaloguj się ponownie.', 401); return $w; }
-function needBoss(array $l): array { $w = needWho($l); if (!$w['boss']) fail('Tylko szef może to zrobić.', 403); return $w; }
+function needBoss(array $l): array { $w = needWho($l); if (!$w['boss']) fail('Tylko manager grafiku może to zrobić.', 403); return $w; }
 function monthData(string $slug, string $m): array {
   $d = readf("m-$slug-$m", []);
   return ['prefs' => (object)($d['prefs'] ?? []), 'plan' => $d['plan'] ?? null, 'closed' => $d['closed'] ?? [], 'deadline' => $d['deadline'] ?? null];
@@ -138,7 +138,7 @@ function cleanConfig(array $in, array $old): array {
       'positions' => array_values(array_intersect((array)($s['positions'] ?? []), $posIds)),
       'min' => $mn, 'max' => $mx,
       'noWd' => array_values(array_unique(array_filter(array_map('intval', (array)($s['noWd'] ?? [])), fn($w) => $w >= 0 && $w <= 6))),
-      'picksOwn' => !empty($s['picksOwn']), 'active' => true];
+      'picksOwn' => !empty($s['picksOwn']), 'manager' => !empty($s['manager']), 'active' => true];
   }
   $ids = array_column($staff, 'id');
   $r = (array)($in['rules'] ?? []);
@@ -238,7 +238,7 @@ switch ($action) {
     session_regenerate_id(true); $_SESSION['uid'] = $r['uid'];
     out(['user' => pubUser(userById($r['uid']))]);
 
-  /* ===== panel szefa ===== */
+  /* ===== panel lokalu ===== */
   case 'lokalSave':
     $u = needUser();
     $slug = slugOk($in['slug'] ?? ''); $l = lokal($slug); if (!$l || !canManage($u, $l)) fail('Nie ma takiego lokalu.', 404);
@@ -281,7 +281,7 @@ switch ($action) {
     if (!$l) fail('Nie ma takiego lokalu.', 404);
     if ($l['status'] !== 'active') fail('Ten lokal nie jest jeszcze aktywny.', 403);
     $p = pubLokal($l);
-    $p['staff'] = array_map(fn($s) => ['id' => $s['id'], 'name' => $s['name'], 'positions' => $s['positions']], $p['staff']);
+    $p['staff'] = array_map(fn($s) => ['id' => $s['id'], 'name' => $s['name'], 'positions' => $s['positions'], 'manager' => !empty($s['manager'])], $p['staff']);
     out(['lokal' => $p, 'me' => who($l)]);
 
   case 'gLogin':
@@ -311,7 +311,7 @@ switch ($action) {
     if (!in_array($person, array_column($l['staff'], 'id'), true)) fail('Nie ma takiej osoby.');
     if (!$w['boss'] && $w['id'] !== $person) fail('Możesz zmieniać tylko swoje preferencje.', 403);
     $dl = monthData($l['slug'], $m)['deadline'];
-    if (!$w['boss'] && $dl && date('Y-m-d') > $dl) fail('Termin wpisywania minął (' . date('d.m', strtotime($dl)) . '). Zmiany zgłoś szefowi.', 403);
+    if (!$w['boss'] && $dl && date('Y-m-d') > $dl) fail('Termin wpisywania minął (' . date('d.m', strtotime($dl)) . '). Zmiany zgłoś managerowi.', 403);
     $n = daysIn($m);
     $mn = numOrNull($in['daysMin'] ?? null); $mx = numOrNull($in['daysMax'] ?? null);
     if ($mn !== null && $mx !== null && $mn > $mx) [$mn, $mx] = [$mx, $mn];

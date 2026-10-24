@@ -64,7 +64,7 @@
       <button class="primary" type="submit">Zaloguj się</button>
       <span class="status err" id="liErr"></span>
       <button type="button" class="link" id="toForgot">Nie pamiętam hasła</button>
-      <p class="hint">Jesteś pracownikiem? Wejdź przez link do grafiku, który dostałeś od szefa, i zaloguj się PIN-em.</p>
+      <p class="hint">Jesteś pracownikiem? Wejdź przez link do grafiku od managera i zaloguj się PIN-em.</p>
     </form>
     <form id="fReg" class="grid2" style="grid-template-columns:1fr" hidden>
       <h2>Załóż konto lokalu</h2>
@@ -268,12 +268,14 @@ function renderStaff(){
       <div class="row"><span class="hint">Dni w miesiącu</span><input type="number" min="0" max="31" placeholder="od" value="${s.min??''}" data-f="min" style="width:80px"><span>–</span><input type="number" min="0" max="31" placeholder="do" value="${s.max??''}" data-f="max" style="width:80px"><span class="hint">puste = równo z innymi</span></div>
       <div><span class="hint">Nigdy nie pracuje w</span><div class="checks">${wdC}</div></div>
       <label class="row" style="font-size:14px;gap:6px"><input type="checkbox" data-f="own" ${s.picksOwn?'checked':''}>Sam wybiera dni (pracuje tylko w dni, które zaznaczy)</label>
+      <label class="row" style="font-size:14px;gap:6px"><input type="checkbox" data-f="mgr" ${s.manager?'checked':''}>Manager grafiku: po zalogowaniu PIN-em może układać i zapisywać grafik</label>
       <span class="status" data-st></span>`;
     el.querySelector('.head input').oninput=e=>{s.name=e.target.value;mark();renderPairsSoon()};
     el.querySelectorAll('[data-p]').forEach(c=>c.onchange=()=>{s.positions=ED.positions.map(p=>p.id).filter(id=>el.querySelector(`[data-p="${id}"]`).checked);mark()});
     el.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{s.noWd=[...el.querySelectorAll('[data-w]:checked')].map(x=>+x.dataset.w);mark()});
     el.querySelectorAll('[data-f=min],[data-f=max]').forEach(c=>c.oninput=()=>{s[c.dataset.f]=c.value===''?null:+c.value;mark()});
     el.querySelector('[data-f=own]').onchange=e=>{s.picksOwn=e.target.checked;mark()};
+    el.querySelector('[data-f=mgr]').onchange=e=>{s.manager=e.target.checked;mark()};
     el.querySelector('[data-a=del]').onclick=()=>{ED.staff.splice(i,1);ED.rules.pairs=ED.rules.pairs.filter(p=>p.a!==s.id&&p.b!==s.id);ED.rules.apart=ED.rules.apart.filter(p=>p.a!==s.id&&p.b!==s.id);mark();renderAll()};
     const pinB=el.querySelector('[data-a=pin]');if(pinB)pinB.onclick=()=>{s.newPin=true;mark();el.querySelector('.pin').textContent='nowy po zapisaniu';pinB.disabled=true};
     const msgB=el.querySelector('[data-a=msg]');if(msgB)msgB.onclick=async()=>{

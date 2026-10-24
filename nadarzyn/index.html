@@ -188,11 +188,11 @@ table.sheet{border-collapse:collapse;font-family:var(--f-mono);font-size:12px;fo
       <h2>Co masz zrobić</h2>
       <ol>
         <li>Sprawdź u góry, czy to dobry miesiąc. Strzałkami ‹ › przełączasz miesiące.</li>
-        <li>Wpisz, ile dni chcesz przepracować (od–do). Jeśli zostawisz puste, obowiązuje to, co ustaliłeś z szefem.</li>
+        <li>Wpisz, ile dni chcesz przepracować (od–do). Jeśli zostawisz puste, obowiązuje to, co ustaliłeś z managerem.</li>
         <li>Jeśli masz ulubiony rytm pracy (np. 2+2), wybierz go z listy. Jeśli nie, zostaw „Obojętnie”.</li>
         <li id="howtoCal">W kalendarzu stuknij dzień raz: chcesz pracować (zielony). Drugi raz: nie możesz (czerwony). Trzeci raz: obojętnie.</li>
-        <li>Na koniec kliknij <b>„Zapisz moje preferencje”</b>. Możesz je zmieniać, dopóki szef nie ułoży grafiku.</li>
-        <li>Gotowy grafik zobaczysz w zakładce <b>„Grafik”</b>, gdy szef go zapisze.</li>
+        <li>Na koniec kliknij <b>„Zapisz moje preferencje”</b>. Możesz je zmieniać, dopóki manager nie ułoży grafiku.</li>
+        <li>Gotowy grafik zobaczysz w zakładce <b>„Grafik”</b>, gdy manager go zapisze.</li>
       </ol>
     </div>
     <div>
@@ -387,7 +387,7 @@ function loadForm(){
   const fixed=[];
   if(s.def.min!=null)fixed.push(`${rangeTxt({min:s.def.min,max:s.def.max})} dni`);
   if(s.noWd)fixed.push('bez '+s.noWd.map(w=>['niedziel','poniedziałków','wtorków','śród','czwartków','piątków','sobót'][w]).join(', '));
-  $('fDef').textContent=fixed.length?`Ustalone z szefem: ${fixed.join(', ')}. Puste pola = te ustalenia.`:'Puste = bez limitu, grafik rozłoży dni równo w grupie';
+  $('fDef').textContent=fixed.length?`Ustalone z managerem: ${fixed.join(', ')}. Puste pola = te ustalenia.`:'Puste = bez limitu, grafik rozłoży dni równo w grupie';
   $('fRhythm').value=p.rhythm||'';$('fNote').value=p.note||'';
   state.blocked=new Set(p.blocked||[]);state.want=new Set(p.want||[]);
   if(s.picksOwn){$('calTitle').textContent='Dni, w które chcę pracować';$('calHint').textContent='Wybierz swoje dni. Pracujesz tylko w zaznaczone dni.'}
@@ -522,7 +522,7 @@ function currentDays(){return state.draft||state.plan?.days||null}
 function renderPlan(){
   const n=nDays(),days=currentDays();
   const filled=STAFF.filter(s=>state.prefs[s.id]).length;
-  if(user&&!user.admin&&!state.plan){$('planInfo').textContent='Szef jeszcze nie zapisał grafiku na ten miesiąc.'}
+  if(user&&!user.admin&&!state.plan){$('planInfo').textContent='Manager jeszcze nie zapisał grafiku na ten miesiąc.'}
   else $('planInfo').textContent=`Preferencje wpisało ${filled} z ${STAFF.length} osób.`+(state.plan&&!state.draft?' Pokazany jest zapisany grafik.':'')+(state.draft?' Masz niezapisane zmiany.':'');
   $('savePlan').disabled=!state.draft;
   let h='<thead><tr><th class="name">Imię</th>';
@@ -643,7 +643,7 @@ function showLogin(){
   user=null;clearInterval(pollT);
   $('appView').hidden=true;$('loginView').hidden=false;
   const box=$('loginPeople');box.innerHTML='';
-  for(const s of [...STAFF,{id:'szef',name:'Szef',role:'układa grafik'}]){
+  for(const s of [...STAFF,{id:'szef',name:'Manager',role:'układa grafik'}]){
     const b=document.createElement('button');b.className='person';b.type='button';b.id='l-'+s.id;
     b.setAttribute('aria-pressed',loginWho===s.id);
     b.innerHTML=`<span>${s.name}</span><small>${s.role}</small>`;
@@ -655,7 +655,7 @@ function showLoginMarks(){document.querySelectorAll('#loginPeople .person').forE
 function startApp(me){
   user=me;
   $('loginView').hidden=true;$('appView').hidden=false;
-  $('whoName').textContent=me.admin?'Zalogowany: Szef':`Zalogowany: ${me.name}`;
+  $('whoName').textContent=me.admin?'Zalogowany: Manager':`Zalogowany: ${me.name}`;
   $('adminBtns').hidden=!me.admin;$('csvBtn').hidden=!me.admin;$('dlBox').hidden=!me.admin;$('shutBox').hidden=!me.admin;$('manualBox').hidden=!me.admin;$('clearBox').hidden=!me.admin;$('howto').hidden=!!me.admin;
   $('howtoCal').textContent=byId[me.id]?.picksOwn?'W kalendarzu stuknij dni, w które chcesz pracować (zielone). Pracujesz tylko w zaznaczone dni.':'W kalendarzu stuknij dzień raz: chcesz pracować (zielony). Drugi raz: nie możesz (czerwony). Trzeci raz: obojętnie.';
   renderDeadline();
@@ -878,7 +878,7 @@ function renderDeadline(){
   if(user&&!user.admin&&dl){
     b.hidden=false;b.className='dl'+(late?' late':'');
     const left=Math.round((new Date(dl+'T23:59:59')-new Date())/864e5);
-    b.textContent=late?`Termin wpisywania na ${MONTHS[cur.m]} minął (${fmtD(dl)}). Zmiany zgłoś szefowi.`
+    b.textContent=late?`Termin wpisywania na ${MONTHS[cur.m]} minął (${fmtD(dl)}). Zmiany zgłoś managerowi.`
       :`Wpisz dyspozycyjność do ${fmtD(dl)} włącznie${left>=0?` (zostało dni: ${left})`:''}.`;
     $('savePrefs').disabled=!!late;
   }else{b.hidden=true;if($('savePrefs'))$('savePrefs').disabled=false}
