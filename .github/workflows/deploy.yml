@@ -1,4 +1,4 @@
-# Po każdym pushu na main: testy bezpieczeństwa, potem wysyłka na OVH szyfrowanym FTPS.
+# Po każdym pushu na main: testy bezpieczeństwa, potem wysyłka na OVH szyfrowanym SFTP (zapasowo FTP).
 # Dane logowania są w Settings → Secrets and variables → Actions:
 #   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD
 # Pliki z PIN-ami (*/config.php) i dane lokali (*/data/) nie są w repo
@@ -24,35 +24,30 @@ jobs:
       - name: Testy bezpieczeństwa (wdrożenie zatrzyma się, jeśli coś nie przejdzie)
         run: bash tests/security.sh
 
-      - name: Wyślij pliki na OVH
-        id: ftp1
+      - name: Wyślij pliki na OVH szyfrowanym SFTP
+        id: sftp
         continue-on-error: true
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          timeout: 120000
-          server-dir: zmiano/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/config.php
-            **/data/**
-            README.md
-            COPYRIGHT.md
-            tests/**
+        env:
+          U: ${{ secrets.FTP_USERNAME }}
+          P: ${{ secrets.FTP_PASSWORD }}
+          H: ${{ secrets.FTP_SERVER }}
+        run: |
+          sudo apt-get update -qq >/dev/null && sudo apt-get install -y -qq lftp >/dev/null
+          lftp -c "set sftp:auto-confirm yes; set net:max-retries 2; set net:timeout 30; \
+            open -u \"$U\",\"$P\" sftp://${H/ftp./ssh.}; \
+            mirror -R --verbose=1 --parallel=4 \
+              --exclude-glob .git* --exclude '^\.git/' --exclude '^\.github/' --exclude '^tests/' \
+              --exclude '(^|/)data/' --exclude '(^|/)config\.php$' --exclude '^README\.md$' --exclude '^COPYRIGHT\.md$' \
+              ./ zmiano/"
 
-      - name: Druga próba, jeśli OVH nie odpowiedział
-        if: steps.ftp1.outcome == 'failure'
+      - name: Zapasowo zwykłe FTP (gdyby SFTP nie działało)
+        if: steps.sftp.outcome == 'failure'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
+          protocol: ftp
           port: 21
           timeout: 120000
           server-dir: zmiano/
