@@ -141,6 +141,7 @@ const isWe=d=>{const w=wday(d);return w===0||w===6};
 const posById=id=>L.positions.find(p=>p.id===id);
 const posIdx=id=>L.positions.findIndex(p=>p.id===id);
 const staffById=id=>L.staff.find(s=>s.id===id);
+const act=()=>L.staff.filter(s=>!s.gone); // bez osób usuniętych z lokalu
 const isOpenWd=d=>(L.rules.openWd||[0,1,2,3,4,5,6]).includes(wday(d));
 const isClosed=d=>state.closed.has(d)||!isOpenWd(d);
 const slots=()=>Z.slotsOf(L.positions);
@@ -222,7 +223,7 @@ $('tPrefs').onclick=()=>tab('prefs');$('tPlan').onclick=()=>tab('plan');
 function renderPeople(){
   if(!ME.boss)return;
   const box=$('people');box.innerHTML='';
-  L.staff.forEach(s=>{
+  act().forEach(s=>{
     const b=document.createElement('button');b.className='person';b.type='button';b.setAttribute('aria-pressed',state.sel===s.id);
     b.innerHTML=`<span><span class="dot ${state.prefs[s.id]?'':'no'}"></span>${esc(s.name)}</span><small>${esc(posNames(s))}</small>`;
     b.onclick=()=>{state.sel=s.id;renderPeople();loadForm()};
@@ -292,7 +293,7 @@ function renderDeadline(){
   }else b.hidden=true;
   if(ME.boss){
     $('dlInput').value=dl||'';
-    const miss=L.staff.filter(s=>!state.prefs[s.id]).map(s=>s.name);
+    const miss=act().filter(s=>!state.prefs[s.id]).map(s=>s.name);
     $('missing').textContent=miss.length?`Nie wpisali jeszcze: ${miss.join(', ')}.`:'Wszyscy wpisali dyspozycyjność.';
     $('remindBtn').hidden=!miss.length;
   }
@@ -304,7 +305,7 @@ async function saveDeadline(v){
 $('dlSave').onclick=()=>{if($('dlInput').value)saveDeadline($('dlInput').value)};
 $('dlClear').onclick=()=>saveDeadline(null);
 $('remindBtn').onclick=async()=>{
-  const miss=L.staff.filter(s=>!state.prefs[s.id]).map(s=>s.name);
+  const miss=act().filter(s=>!state.prefs[s.id]).map(s=>s.name);
   const txt=`Przypomnienie: wpisz swoją dyspozycyjność na ${MONTHS[cur.m]}${state.deadline?` do ${fmtD(state.deadline)}`:''} na ${location.origin}/l/${slug} (imię + PIN). Brakuje jeszcze: ${miss.join(', ')}.`;
   try{await navigator.clipboard.writeText(txt);$('dlStatus').textContent='Skopiowane. Wklej na grupę ekipy.';$('dlStatus').className='status ok'}
   catch(e){$('dlStatus').textContent=txt;$('dlStatus').className='status'}
@@ -345,7 +346,7 @@ async function toggleShut(d){
 /* ---------- grafik ---------- */
 const currentDays=()=>state.draft||state.plan?.days||null;
 function run(base){
-  return Z.solve({year:cur.y,month0:cur.m,positions:L.positions,staff:L.staff,prefs:state.prefs,rules:L.rules,closed:state.closed,base});
+  return Z.solve({year:cur.y,month0:cur.m,positions:L.positions,staff:act(),prefs:state.prefs,rules:L.rules,closed:state.closed,base});
 }
 $('genBtn').onclick=()=>{
   $('genBtn').disabled=true;$('genBtn').textContent='Układam…';
@@ -362,9 +363,9 @@ $('savePlan').onclick=async()=>{
 };
 function cellOf(day,id){const p=Z.slotOf(day,id);return p?posById(p):null}
 function renderPlan(){
-  const n=nDays(),days=currentDays(),filled=L.staff.filter(s=>state.prefs[s.id]).length;
+  const n=nDays(),days=currentDays(),filled=act().filter(s=>state.prefs[s.id]).length;
   $('planInfo').textContent=!ME.boss&&!state.plan?'Manager jeszcze nie zapisał grafiku na ten miesiąc.':
-    `Dyspozycyjność podało ${filled} z ${L.staff.length} osób.`+(state.draft?' Masz niezapisane zmiany.':state.plan?' Pokazany jest zapisany grafik.':'');
+    (ME.boss?`Dyspozycyjność podało ${filled} z ${act().length} osób.`:'')+(state.draft?' Masz niezapisane zmiany.':state.plan?' Pokazany jest zapisany grafik.':'');
   $('savePlan').disabled=!state.draft;
   // legenda
   $('legend').innerHTML=L.positions.map((p,i)=>`<span><b style="background:${PAL[i%8][0]};color:${PAL[i%8][1]}">${esc(p.short)}</b> ${esc(p.name)}</span>`).join('')+
@@ -381,7 +382,7 @@ function renderPlan(){
     if(!g.list.length)continue;
     h+=`<tr class="grow"><td class="name">${esc(g.p.name)}</td><td colspan="${n+2}"></td></tr>`;
     for(const s of g.list){
-      const e=eff(s.id);let row=`<tr><td class="name">${esc(s.name)}</td>`,cnt=0,runL=0,mx=0;
+      const e=eff(s.id);let row=`<tr><td class="name">${esc(s.name)}${s.gone?' <span class="hint">(usunięty)</span>':''}</td>`,cnt=0,runL=0,mx=0;
       for(let d=1;d<=n;d++){
         const x=days?.[d-1];let cls=isWe(d)?'we':'',txt='',style='';
         const off=e.blocked.has(d)||e.noWd.includes(wday(d));
@@ -419,7 +420,7 @@ function renderPlan(){
   let openN=0;for(let d=1;d<=n;d++)if(!isClosed(d))openN++;
   chips.unshift(`<span class="chip">Dni otwarte: ${openN}</span>`);
   $('summary').innerHTML=chips.join('');
-  $('notes').innerHTML=[...new Set(notes)].map(x=>`<div>${esc(x)}</div>`).join('');
+  $('notes').innerHTML=!ME.boss?'':[...new Set(notes)].map(x=>`<div>${esc(x)}</div>`).join('');
   if(ME.boss)renderDays();
 }
 function renderDays(){
@@ -431,7 +432,7 @@ function renderDays(){
     if(isClosed(d)){sels.innerHTML='<span class="hint">zamknięte</span>'}
     else sl.forEach((s,k)=>{
       const p=posById(s.pos),sel=document.createElement('select');sel.setAttribute('aria-label',`${d}. ${p.name}`);
-      const el2=L.staff.filter(st=>(st.positions||[]).includes(s.pos));
+      const el2=L.staff.filter(st=>(st.positions||[]).includes(s.pos)&&(!st.gone||x?.[s.key]===st.id));
       sel.innerHTML=`<option value="">${esc(p.name)}: brak</option>`+el2.map(st=>`<option value="${st.id}">${esc(p.short)} · ${esc(st.name)}</option>`).join('');
       sel.value=x?.[s.key]||'';
       sel.onchange=()=>{
@@ -476,7 +477,7 @@ function renderRules(){
   if(closedWd.length)li.push('Lokal zamknięty w: '+closedWd.map(w=>WDN[w]).join(', ')+'.');
   (r.pairs||[]).forEach(p=>li.push(`Gdy ${staffById(p.a)?.name} i ${staffById(p.b)?.name} są razem, ${staffById(p.b)?.name} idzie na: ${posById(p.bPos)?.name}.`));
   (r.apart||[]).forEach(p=>li.push(`${staffById(p.a)?.name} i ${staffById(p.b)?.name} nie pracują razem.`));
-  L.staff.forEach(s=>{const x=[];if(s.min!=null)x.push(`${rangeTxt({min:s.min,max:s.max??s.min})} dni`);if((s.noWd||[]).length)x.push('nie pracuje w '+s.noWd.map(w=>WDN[w]).join(', '));if(s.picksOwn)x.push('sam wybiera dni');if(x.length)li.push(`${s.name}: ${x.join(', ')}.`)});
+  act().forEach(s=>{const x=[];if(s.min!=null)x.push(`${rangeTxt({min:s.min,max:s.max??s.min})} dni`);if((s.noWd||[]).length)x.push('nie pracuje w '+s.noWd.map(w=>WDN[w]).join(', '));if(s.picksOwn)x.push('sam wybiera dni');if(x.length)li.push(`${s.name}: ${x.join(', ')}.`)});
   $('rulesList').innerHTML=li.map(x=>`<li>${esc(x)}</li>`).join('');
 }
 
@@ -521,7 +522,7 @@ function exportCsv(){
   const n=nDays(),days=currentDays(),rows=[];
   rows.push([`Dyspozycyjność · ${MONTHS[cur.m]} ${cur.y} · ${L.name}`]);
   rows.push(['Osoba','Stanowisko','Dni od','Dni do','Rytm','Chce pracować (dni)','Nie może (dni)','Uwagi','Zapisano']);
-  L.staff.forEach(s=>{
+  act().forEach(s=>{
     const p=state.prefs[s.id];
     rows.push([s.name,posNames(s),p?.daysMin??'',p?.daysMax??'',p?.rhythm||'',(p?.want||[]).join(', '),(p?.blocked||[]).join(', '),p?.note||'',
       p?.updatedAt?new Date(p.updatedAt).toLocaleString('pl-PL'):'nie wpisał(a)']);

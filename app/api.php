@@ -160,6 +160,13 @@ function cleanConfig(array $in, array $old): array {
     if (in_array($p['a'] ?? '', $ids, true) && in_array($p['b'] ?? '', $ids, true) && $p['a'] !== $p['b']) $apart[] = ['a' => $p['a'], 'b' => $p['b']];
   }
   $open = array_values(array_unique(array_filter(array_map('intval', (array)($r['openWd'] ?? [0,1,2,3,4,5,6])), fn($w) => $w >= 0 && $w <= 6)));
+  // usunięci pracownicy: zostaje samo imię i stanowiska, żeby zapisane grafiki dalej pokazywały, kto pracował.
+  // PIN, e-mail i telefon znikają od razu. Trzymamy najwyżej 100 ostatnio usuniętych.
+  $gone = [];
+  foreach ($old['staff'] ?? [] as $s) if (!in_array($s['id'], $ids, true))
+    $gone[] = ['id' => $s['id'], 'name' => $s['name'], 'positions' => $s['positions'] ?? [], 'active' => false, 'removedAt' => $s['removedAt'] ?? now()];
+  usort($gone, fn($a, $b) => $b['removedAt'] <=> $a['removedAt']);
+  $staff = array_merge($staff, array_slice($gone, 0, 100));
   return ['name' => str($in['name'] ?? $old['name'], 60) ?: $old['name'], 'positions' => $pos, 'staff' => $staff,
     'rules' => ['maxRun' => max(1, min(14, (int)($r['maxRun'] ?? 5))), 'openWd' => $open ?: [0,1,2,3,4,5,6], 'pairs' => $pairs, 'apart' => $apart]];
 }
@@ -310,13 +317,26 @@ switch ($action) {
   case 'gState':
     $l = lokal(slugOk($_GET['slug'] ?? '')); if (!$l) fail('Nie ma takiego lokalu.', 404);
     $w = needWho($l);
-    $full = pubLokal($l); // konfiguracja bez PIN-ów
-    out(['lokal' => $full, 'me' => $w] + monthData($l['slug'], monthOk($_GET['month'] ?? '')));
+    $full = pubLokal($l); // konfiguracja bez PIN-ów i kontaktów
+    $md = monthData($l['slug'], monthOk($_GET['month'] ?? ''));
+    // osoby usunięte z lokalu, które są w zapisanym grafiku tego miesiąca – tylko imię
+    $inPlan = [];
+    foreach (($md['plan']['days'] ?? []) as $day) foreach ((array)$day as $sid) if ($sid) $inPlan[$sid] = true;
+    foreach ($l['staff'] ?? [] as $s) if (empty($s['active']) && isset($inPlan[$s['id']]))
+      $full['staff'][] = ['id' => $s['id'], 'name' => $s['name'], 'positions' => $s['positions'] ?? [], 'gone' => true];
+    if (!$w['boss']) {
+      // zwykły pracownik widzi ustawienia i dyspozycyjność tylko swoje; o innych – imię i stanowiska
+      $full['staff'] = array_map(fn($s) => $s['id'] === $w['id'] ? $s : ['id' => $s['id'], 'name' => $s['name'], 'positions' => $s['positions'] ?? [], 'gone' => !empty($s['gone'])], $full['staff']);
+      $full['rules'] = ['maxRun' => $full['rules']['maxRun'] ?? 5, 'openWd' => $full['rules']['openWd'] ?? [0,1,2,3,4,5,6], 'pairs' => [], 'apart' => []];
+      $own = ((array)$md['prefs'])[$w['id']] ?? null;
+      $md['prefs'] = (object)($own ? [$w['id'] => $own] : []);
+    }
+    out(['lokal' => $full, 'me' => $w] + $md);
 
   case 'gSavePrefs':
     $l = lokal(slugOk($in['slug'] ?? '')); if (!$l) fail('Nie ma takiego lokalu.', 404);
     $w = needWho($l); $m = monthOk($in['month'] ?? ''); $person = (string)($in['person'] ?? '');
-    if (!in_array($person, array_column($l['staff'], 'id'), true)) fail('Nie ma takiej osoby.');
+    if (!in_array($person, array_column(array_filter($l['staff'], fn($s) => !empty($s['active'])), 'id'), true)) fail('Nie ma takiej osoby.');
     if (!$w['boss'] && $w['id'] !== $person) fail('Możesz zmieniać tylko swoje preferencje.', 403);
     $dl = monthData($l['slug'], $m)['deadline'];
     if (!$w['boss'] && $dl && date('Y-m-d') > $dl) fail('Termin wpisywania minął (' . date('d.m', strtotime($dl)) . '). Zmiany zgłoś managerowi.', 403);
