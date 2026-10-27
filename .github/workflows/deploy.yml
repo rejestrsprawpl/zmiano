@@ -16,11 +16,14 @@ concurrency:
 
 jobs:
   ftp:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
       - name: Wyślij pliki na OVH
+        id: ftp1
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -28,6 +31,26 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
           port: 21
+          timeout: 120000
+          server-dir: zmiano/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/config.php
+            **/data/**
+            README.md
+            COPYRIGHT.md
+
+      - name: Druga próba, jeśli OVH nie odpowiedział
+        if: steps.ftp1.outcome == 'failure'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          timeout: 120000
           server-dir: zmiano/
           exclude: |
             **/.git*
