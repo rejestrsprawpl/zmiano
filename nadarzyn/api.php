@@ -3,10 +3,17 @@
 declare(strict_types=1);
 require __DIR__ . '/config.php';
 
+// obrona przed atakami z obcych stron: zapytania zmieniające dane tylko z tej samej domeny
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+  $o = $_SERVER['HTTP_ORIGIN'] ?? ($_SERVER['HTTP_REFERER'] ?? '');
+  if ($o !== '' && strtolower((string)parse_url($o, PHP_URL_HOST)) !== strtolower(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0])) {
+    http_response_code(403); header('Content-Type: application/json; charset=utf-8'); echo '{"error":"Niedozwolone źródło zapytania."}'; exit;
+  }
+}
 session_set_cookie_params([
   'lifetime' => 60 * 60 * 24 * 60,
   'path' => rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/') . '/', // osobna sesja dla każdego lokalu
-  'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+  'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || !in_array(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0], ['127.0.0.1', 'localhost'], true),
   'httponly' => true,
   'samesite' => 'Lax',
 ]);
@@ -88,14 +95,16 @@ switch ($action) {
     $now = time(); $win = 15 * 60;
     $locked = false;
     attempts(function ($a) use ($who, $ip, $now, $win, &$locked) {
-      foreach ($a as $k => $list) { $a[$k] = array_values(array_filter($list, fn($t) => $t > $now - $win)); if (!$a[$k]) unset($a[$k]); }
-      if (count($a["u:$who"] ?? []) >= 5 || count($a["ip:$ip"] ?? []) >= 20) $locked = true;
+      foreach ($a as $k => $list) { $a[$k] = array_values(array_filter($list, fn($t) => $t > $now - 86400)); if (!$a[$k]) unset($a[$k]); }
+      $recent = fn($k) => count(array_filter($a[$k] ?? [], fn($t) => $t > $now - $win));
+      // 5 prób na osobę i 20 z jednego IP na 15 minut, do tego najwyżej 12 błędnych PIN-ów na osobę na dobę
+      if ($recent("u:$who") >= 5 || $recent("ip:$ip") >= 20 || count($a["d:$who"] ?? []) >= 12) $locked = true;
       return $a;
     });
     if ($locked) fail('Za dużo błędnych prób. Spróbuj ponownie za 15 minut.', 429);
     $ok = ($who === 'szef') ? hash_equals($ADMIN_PIN, $pin) : hash_equals((string)$USERS[$who]['pin'], $pin);
     if (!$ok) {
-      attempts(function ($a) use ($who, $ip, $now) { $a["u:$who"][] = $now; $a["ip:$ip"][] = $now; return $a; });
+      attempts(function ($a) use ($who, $ip, $now) { $a["u:$who"][] = $now; $a["d:$who"][] = $now; $a["ip:$ip"][] = $now; return $a; });
       sleep(1); fail('Zły PIN.', 401);
     }
     attempts(function ($a) use ($who) { unset($a["u:$who"]); return $a; });
@@ -112,8 +121,15 @@ switch ($action) {
     out(['me' => me()]);
 
   case 'state':
-    needLogin();
-    out(load(monthOk($_GET['month'] ?? '')));
+    $m = needLogin();
+    $d = load(monthOk($_GET['month'] ?? ''));
+    if (empty($m['admin'])) {
+      // pracownik dostaje tylko swoją dyspozycyjność; o innych tylko to, że już wpisali
+      $all = (array)$d['prefs']; $d['prefs'] = [];
+      foreach ($all as $id => $p) $d['prefs'][$id] = $id === $m['id'] ? $p : ['filled' => true];
+      $d['prefs'] = (object)$d['prefs'];
+    }
+    out($d);
 
   case 'savePrefs':
     $m = needLogin(); $month = monthOk($in['month'] ?? '');

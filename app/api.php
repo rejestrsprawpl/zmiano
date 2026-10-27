@@ -11,8 +11,15 @@ const MAIL_FROM = 'Zmiano <kontakt@zmiano.pl>';
 const SITE = 'https://zmiano.pl';
 const RHYTHMS = ['1+1','2+1','2+2','3+1','3+2','3+3','4+1','4+2','4+3'];
 
+// obrona przed atakami z obcych stron: zapytania zmieniające dane tylko z tej samej domeny
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+  $o = $_SERVER['HTTP_ORIGIN'] ?? ($_SERVER['HTTP_REFERER'] ?? '');
+  if ($o !== '' && strtolower((string)parse_url($o, PHP_URL_HOST)) !== strtolower(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0])) {
+    http_response_code(403); header('Content-Type: application/json; charset=utf-8'); echo '{"error":"Niedozwolone źródło zapytania."}'; exit;
+  }
+}
 session_name('zmiano_app');
-session_set_cookie_params(['lifetime' => 60 * 60 * 24 * 60, 'path' => '/', 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', 'httponly' => true, 'samesite' => 'Lax']);
+session_set_cookie_params(['lifetime' => 60 * 60 * 24 * 60, 'path' => '/', 'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || !in_array(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0], ['127.0.0.1', 'localhost'], true), 'httponly' => true, 'samesite' => 'Lax']);
 ini_set('session.gc_maxlifetime', (string)(60 * 60 * 24 * 60));
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -54,11 +61,12 @@ function mailto(string $to, string $subject, string $body): void {
 }
 
 /* ---------- ograniczanie prób ---------- */
-function limited(string $key, int $max): bool {
-  $now = time(); $win = 900; $hit = false;
+function limited(string $key, int $max, int $win = 900): bool {
+  $now = time(); $hit = false;
   withf('attempts', function ($a) use ($key, $max, $now, $win, &$hit) {
-    foreach ($a as $k => $l) { $a[$k] = array_values(array_filter($l, fn($t) => $t > $now - $win)); if (!$a[$k]) unset($a[$k]); }
-    $hit = count($a[$key] ?? []) >= $max; return $a;
+    // ślady prób trzymamy najwyżej dobę
+    foreach ($a as $k => $l) { $a[$k] = array_values(array_filter($l, fn($t) => $t > $now - 86400)); if (!$a[$k]) unset($a[$k]); }
+    $hit = count(array_filter($a[$key] ?? [], fn($t) => $t > $now - $win)) >= $max; return $a;
   });
   return $hit;
 }
@@ -69,7 +77,7 @@ function clearAttempt(string $key): void { withf('attempts', function ($a) use (
 function users(): array { return readf('users', []); }
 function userById(?string $id): ?array { foreach (users() as $u) if ($u['id'] === $id) return $u; return null; }
 function userByEmail(string $e): ?array { foreach (users() as $u) if ($u['email'] === $e) return $u; return null; }
-function me(): ?array { $u = userById($_SESSION['uid'] ?? null); return $u; }
+function me(): ?array { $u = userById($_SESSION['uid'] ?? null); if ($u && ($_SESSION['sv'] ?? 0) !== ($u['sv'] ?? 0)) { $_SESSION = []; return null; } return $u; }
 function pubUser(?array $u): ?array { return $u ? ['id' => $u['id'], 'email' => $u['email'], 'name' => $u['name'], 'role' => $u['role'], 'status' => $u['status'], 'lokal' => $u['lokal'] ?? null] : null; }
 function needUser(): array { $u = me(); if (!$u) fail('Zaloguj się.', 401); return $u; }
 function needAdmin(): array { $u = needUser(); if ($u['role'] !== 'admin') fail('Brak uprawnień.', 403); return $u; }
@@ -225,7 +233,7 @@ switch ($action) {
     $u = userByEmail($email);
     if (!$u || !password_verify((string)($in['password'] ?? ''), $u['hash'])) { failAttempt("pw:$email", "pwip:$ip"); sleep(1); fail('Zły e-mail albo hasło.', 401); }
     clearAttempt("pw:$email");
-    session_regenerate_id(true); $_SESSION['uid'] = $u['id'];
+    session_regenerate_id(true); $_SESSION['uid'] = $u['id']; $_SESSION['sv'] = $u['sv'] ?? 0;
     out(['user' => pubUser($u)]);
 
   case 'logout':
@@ -248,9 +256,9 @@ switch ($action) {
     if (strlen($pass) < 8) fail('Hasło musi mieć co najmniej 8 znaków.');
     $r = null; foreach (readf('resets', []) as $x) if (hash_equals($x['hash'], hash('sha256', $tok)) && $x['exp'] > time()) $r = $x;
     if (!$r) fail('Link wygasł albo jest nieprawidłowy. Poproś o nowy.');
-    withf('users', function ($d) use ($r, $pass) { foreach ($d as &$u) if ($u['id'] === $r['uid']) $u['hash'] = password_hash($pass, PASSWORD_DEFAULT); return $d; });
+    withf('users', function ($d) use ($r, $pass) { foreach ($d as &$u) if ($u['id'] === $r['uid']) { $u['hash'] = password_hash($pass, PASSWORD_DEFAULT); $u['sv'] = ($u['sv'] ?? 0) + 1; } return $d; });
     withf('resets', fn($d) => array_values(array_filter($d, fn($x) => $x['uid'] !== $r['uid'])));
-    session_regenerate_id(true); $_SESSION['uid'] = $r['uid'];
+    session_regenerate_id(true); $_SESSION['uid'] = $r['uid']; $_SESSION['sv'] = userById($r['uid'])['sv'] ?? 0;
     out(['user' => pubUser(userById($r['uid']))]);
 
   /* ===== panel lokalu ===== */
@@ -296,12 +304,14 @@ switch ($action) {
     if (!$l) fail('Nie ma takiego lokalu.', 404);
     if ($l['status'] !== 'active') fail('Ten lokal nie jest jeszcze aktywny.', 403);
     $p = pubLokal($l);
-    $p['staff'] = array_map(fn($s) => ['id' => $s['id'], 'name' => $s['name'], 'positions' => $s['positions'], 'manager' => !empty($s['manager'])], $p['staff']);
+    $p['rules'] = []; // ekran logowania nie potrzebuje zasad (kto z kim nie pracuje to drażliwa informacja)
+    $p['staff'] = array_map(fn($s) => ['id' => $s['id'], 'name' => $s['name'], 'positions' => $s['positions']], $p['staff']);
     out(['lokal' => $p, 'me' => who($l)]);
 
   case 'gLogin':
     $l = lokal(slugOk($in['slug'] ?? '')); if (!$l || $l['status'] !== 'active') fail('Nie ma takiego lokalu.', 404);
     $sid = (string)($in['staff'] ?? ''); $key = "pin:{$l['slug']}:$sid";
+    if (limited("day:$key", 12, 86400)) fail('Za dużo błędnych PIN-ów dla tej osoby. Logowanie zablokowane do jutra – poproś managera o nowy PIN.', 429);
     if (limited($key, 5) || limited("pinip:$ip", 20)) fail('Za dużo błędnych prób. Spróbuj ponownie za 15 minut.', 429);
     foreach ($l['staff'] as $s) {
       if ($s['id'] === $sid && !empty($s['active']) && hash_equals((string)$s['pin'], (string)($in['pin'] ?? ''))) {
@@ -309,7 +319,7 @@ switch ($action) {
         out(['me' => who($l)]);
       }
     }
-    failAttempt($key, "pinip:$ip"); sleep(1); fail('Zły PIN.', 401);
+    failAttempt($key, "day:$key", "pinip:$ip"); sleep(1); fail('Zły PIN.', 401);
 
   case 'gLogout':
     $slug = slugOk($in['slug'] ?? ''); unset($_SESSION['emp'][$slug]); out(['ok' => true]);

@@ -1,7 +1,23 @@
 DirectoryIndex index.html
 Options -Indexes
 RewriteEngine On
-# panel szefa i grafik lokalu
+
+# dane, konfiguracja i skrypt kopii nigdy nie są dostępne z internetu (druga warstwa obok data/.htaccess)
+RewriteRule ^(app|nadarzyn)/data(/|$) - [F,L]
+RewriteRule (^|/)config(\.example)?\.php$ - [F,L]
+RewriteRule ^backup\.php$ - [F,L]
+
+# panel lokalu, dokumenty i grafik lokalu
 RewriteRule ^panel/?$ app/panel.html [L]
 RewriteRule ^(regulamin|prywatnosc|umowa-powierzenia)/?$ prawo/$1.html [L]
 RewriteRule ^l/([a-z0-9-]+)/?$ app/grafik.html [L]
+
+# nagłówki bezpieczeństwa
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+</IfModule>

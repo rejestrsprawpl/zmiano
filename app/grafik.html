@@ -171,7 +171,7 @@ function showLogin(){
   (L?.staff||[]).forEach(s=>{
     const b=document.createElement('button');b.className='person';b.type='button';
     b.setAttribute('aria-pressed',loginWho===s.id);
-    b.innerHTML=`<span>${esc(s.name)}</span><small>${esc(posNames(s))}${s.manager?', manager grafiku':''}</small>`;
+    b.innerHTML=`<span>${esc(s.name)}</span><small>${esc(posNames(s))}</small>`;
     b.onclick=()=>{loginWho=s.id;$('loginErr').textContent='';$('loginForm').hidden=false;showLogin();$('pin').focus()};
     box.appendChild(b);
   });

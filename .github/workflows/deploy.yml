@@ -1,4 +1,4 @@
-# Po każdym pushu na main wysyła stronę na hosting OVH przez FTP.
+# Po każdym pushu na main: testy bezpieczeństwa, potem wysyłka na OVH szyfrowanym FTPS.
 # Dane logowania są w Settings → Secrets and variables → Actions:
 #   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD
 # Pliki z PIN-ami (*/config.php) i dane lokali (*/data/) nie są w repo
@@ -21,6 +21,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Testy bezpieczeństwa (wdrożenie zatrzyma się, jeśli coś nie przejdzie)
+        run: bash tests/security.sh
+
       - name: Wyślij pliki na OVH
         id: ftp1
         continue-on-error: true
@@ -29,7 +32,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
+          protocol: ftps
           port: 21
           timeout: 120000
           server-dir: zmiano/
@@ -40,6 +43,7 @@ jobs:
             **/data/**
             README.md
             COPYRIGHT.md
+            tests/**
 
       - name: Druga próba, jeśli OVH nie odpowiedział
         if: steps.ftp1.outcome == 'failure'
@@ -48,7 +52,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
+          protocol: ftps
           port: 21
           timeout: 120000
           server-dir: zmiano/
@@ -59,3 +63,4 @@ jobs:
             **/data/**
             README.md
             COPYRIGHT.md
+            tests/**
