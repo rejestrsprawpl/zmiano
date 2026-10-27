@@ -40,8 +40,11 @@ function withf(string $name, callable $fn, $def = []) {
   $d = $raw ? (json_decode(substr($raw, strlen(GUARD)), true) ?? $def) : $def;
   $res = $fn($d);
   [$d, $ret] = is_array($res) && array_key_exists('__ret', $res) ? [$res['d'], $res['__ret']] : [$res, null];
+  // najpierw kodowanie – jeśli się nie uda, plik zostaje nietknięty
+  $json = json_encode($d, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE);
+  if ($json === false) { flock($fh, LOCK_UN); fclose($fh); fail('Nie udało się zapisać. Spróbuj ponownie.', 500); }
   ftruncate($fh, 0); rewind($fh);
-  fwrite($fh, GUARD . json_encode($d, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+  fwrite($fh, GUARD . $json);
   fflush($fh); flock($fh, LOCK_UN); fclose($fh);
   return $ret ?? $d;
 }
@@ -118,7 +121,7 @@ function cleanConfig(array $in, array $old): array {
   foreach (array_slice((array)($in['positions'] ?? []), 0, 12) as $p) {
     $name = str($p['name'] ?? '', 40); if ($name === '') continue;
     $id = preg_match('/^p[a-z0-9]{3,12}$/', (string)($p['id'] ?? '')) ? $p['id'] : rid('p');
-    $short = strtoupper(str($p['short'] ?? '', 2)) ?: strtoupper(substr($name, 0, 1));
+    $short = mb_strtoupper(str($p['short'] ?? '', 2)) ?: mb_strtoupper(mb_substr($name, 0, 1));
     $pos[] = ['id' => $id, 'name' => $name, 'short' => $short, 'count' => max(1, min(6, (int)($p['count'] ?? 1)))];
     $posIds[] = $id;
   }

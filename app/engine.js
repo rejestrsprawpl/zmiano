@@ -100,8 +100,10 @@ function solve(o){
   const CHG=25,chg=(d,x)=>{const b=o.base&&o.base[d];if(!b||!x)return 0;let c=0;for(const s of slots)if(b[s.key]!==x[s.key])c+=CHG;return c};
   const sc=(A,id)=>scorePerson(A,id,n,closed,fair[id]??null,E[id],maxRun);
   let best=null,bestC=Infinity;
-  const runs=o.base?3:5,iters=Math.max(20000,slots.length*7000);
+  const runs=o.base?3:5,budget=o.timeMs||6000,t0=Date.now(),now=()=>Date.now();
+  let iters=Math.max(20000,slots.length*7000);
   for(let r=0;r<runs;r++){
+    if(r>0&&now()-t0>budget)break;
     const A=cand.map((m,d)=>{
       if(!m)return null;
       const b=o.base&&o.base[d];
@@ -115,8 +117,10 @@ function solve(o){
     const dc=new Array(n);
     for(let d=0;d<n;d++)dc[d]=scoreDay(A[d],rules,slots)+chg(d,A[d]);
     c+=dc.reduce((a,b)=>a+b,0);
-    let T=o.base?6:60;
+    const T0=o.base?6:60;let T=T0,decay=Math.pow(.05/T0,1/(iters*.85));
     for(let it=0;it<iters;it++){
+      // limit czasu: po pierwszych 2000 krokach dopasuj liczbę kroków do budżetu
+      if(it===2000&&r===0){const per=(now()-t0)/2000,cap=Math.floor(budget/runs/per);if(cap<iters){iters=Math.max(4000,cap);decay=Math.pow(.05/T0,1/(iters*.85))}}
       const d=Math.floor(Math.random()*n),m=cand[d];if(!m)continue;
       const sl=pick(slots),list=m[sl.key];if(!list.length)continue;
       const old=A[d],nx={...old},v=pick(list);
@@ -136,7 +140,7 @@ function solve(o){
       let delta=nd-dc[d];const np={};
       for(const id of aff){np[id]=sc(A,id);delta+=np[id]-pc[id]}
       if(delta<=0||Math.random()<Math.exp(-delta/T)){c+=delta;dc[d]=nd;Object.assign(pc,np)}else A[d]=old;
-      T=Math.max(.05,T*.9996);
+      T=Math.max(.05,T*decay);
     }
     if(c<bestC){bestC=c;best=A.map(x=>x&&{...x})}
   }

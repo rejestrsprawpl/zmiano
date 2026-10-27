@@ -57,8 +57,10 @@ function update(string $m, callable $fn): array {
   $d += ['prefs' => [], 'plan' => null];
   if (!is_array($d['prefs'])) $d['prefs'] = [];
   $d = $fn($d);
+  $json = json_encode($d, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE);
+  if ($json === false) { flock($fh, LOCK_UN); fclose($fh); fail('Nie udało się zapisać. Spróbuj ponownie.', 500); }
   ftruncate($fh, 0); rewind($fh);
-  fwrite($fh, GUARD . json_encode($d, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+  fwrite($fh, GUARD . $json);
   fflush($fh); flock($fh, LOCK_UN); fclose($fh);
   return $d;
 }

@@ -73,6 +73,15 @@ button.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
 .pos input[aria-label="Skrót w grafiku"]{text-align:center;text-transform:uppercase}
 .steps li:hover{border-color:var(--ink)}
 #trial .sheet td.name{font-size:13px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.issues li:has(.iss){padding:0}
+.iss{all:unset;display:block;width:100%;box-sizing:border-box;padding:8px 12px;cursor:pointer;font-size:14px;line-height:1.45}
+.iss:hover{text-decoration:underline}
+.iss:focus-visible{outline:2px solid var(--ink);outline-offset:-2px;border-radius:6px}
+.fromto{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.fromto input{width:68px}
+#addMany{min-height:40px;padding:0 6px}
+#secCheck{margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -187,7 +196,7 @@ button.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
 
     <div class="panel" id="secRules">
       <div><h2>Zasady <span class="muted" style="font:600 15px var(--f-body)">(możesz zostawić domyślne)</span></h2></div>
-      <div class="row" style="font-size:15px">Nikt nie pracuje dłużej niż <select id="edMaxRun" style="width:auto"></select> dni z rzędu.</div>
+      <label class="row" style="font-size:15px" for="edMaxRun">Nikt nie pracuje dłużej niż <select id="edMaxRun" style="width:auto"></select> dni z rzędu.</label>
       <div><span class="hint">Lokal jest otwarty w</span><div class="checks" id="edOpen" style="margin-top:6px"></div></div>
       <details id="pairsBox"><summary style="cursor:pointer;font-weight:700">Zasady dla konkretnych osób (opcjonalnie)</summary>
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px">
@@ -199,12 +208,13 @@ button.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
 
     <div class="panel" id="secCheck">
       <div><h2>3. Sprawdzenie</h2><p class="hint">Na bieżąco sprawdzamy, czy z tych ustawień da się ułożyć grafik.</p></div>
+      <p id="issSum" class="sr" aria-live="polite"></p>
       <ul class="issues" id="issues"></ul>
-      <div class="row"><button id="trialBtn" class="dark">Wygeneruj próbny grafik</button><span class="hint">Nic nie zapisuje, tylko pokazuje, jak to wyjdzie.</span></div>
+      <div class="row"><button id="trialBtn" class="dark">Wygeneruj próbny grafik</button><span class="hint" id="trialHint">Nic nie zapisuje, tylko pokazuje, jak to wyjdzie.</span></div>
       <div id="trial" hidden></div>
     </div>
 
-    <div class="savebar"><button class="primary" id="edSave">Zapisz zmiany</button><span class="status" id="edStatus"></span></div>
+    <div class="savebar"><button class="primary" id="edSave">Zapisz zmiany</button><span class="status" id="edStatus" role="status"></span></div>
   </section>
 </div>
 
@@ -295,6 +305,8 @@ $('edClose').onclick=()=>{show('vAdmin');loadAdmin()};
 
 /* ---------- edytor lokalu ---------- */
 const OPEN_MORE=new Set();
+const plural=(n,a,b,c)=>n===1?a:(n%10>=2&&n%10<=4&&(n%100<12||n%100>14))?b:c;
+const MAX_STAFF=60,MAX_POS=12;
 const tmpId=p=>p+'new'+Math.random().toString(36).slice(2,8);
 const named=a=>a.filter(x=>(x.name||'').trim());
 function openEditor(l,asAdmin){
@@ -331,20 +343,25 @@ function renderPos(){
     const r=document.createElement('div');r.className='pos';
     r.innerHTML=`<input type="text" value="${esc(p.name)}" maxlength="40" placeholder="np. Kuchnia ciepła" aria-label="Nazwa stanowiska">
       <input type="text" maxlength="2" value="${esc(p.short)}" placeholder="Skrót" aria-label="Skrót w grafiku" title="Skrót w kratkach grafiku">
-      <label class="cnt"><select aria-label="Ile osób na zmianie">${[1,2,3,4,5,6].map(n=>`<option ${n===p.count?'selected':''}>${n}</option>`).join('')}</select>${p.count===1?'osoba':'osoby'} na zmianie</label>
-      <button class="warn"></button>`;
+      <label class="cnt"><select aria-label="Ile osób na zmianie">${[1,2,3,4,5,6].map(n=>`<option ${n===p.count?'selected':''}>${n}</option>`).join('')}</select>${plural(p.count,'osoba','osoby','osób')} na zmianie</label>
+      <button class="warn" aria-label="Usuń stanowisko ${esc(p.name)}"></button>`;
     const [n,s,c,del]=[r.children[0],r.children[1],r.querySelector('select'),r.querySelector('button')];
-    n.oninput=()=>{p.name=n.value;if(!p.shortSet){p.short=(n.value.trim()[0]||'').toUpperCase();s.value=p.short}mark();refreshPosNames()};
-    s.oninput=()=>{p.short=s.value.toUpperCase();s.value=p.short;p.shortSet=true;mark()};
-    c.onchange=()=>{p.count=+c.value;c.parentNode.lastChild.textContent=p.count===1?'osoba na zmianie':'osoby na zmianie';mark()};
+    let prev=p.name||'';n.oninput=()=>{const auto=!p.short||p.short===(prev.trim()[0]||'').toUpperCase();prev=n.value;p.name=n.value;if(auto){p.short=(n.value.trim()[0]||'').toUpperCase();s.value=p.short}mark();refreshPosNames()};
+    s.oninput=()=>{p.short=s.value.toUpperCase();s.value=p.short;mark()};
+    c.onchange=()=>{p.count=+c.value;c.parentNode.lastChild.textContent=plural(p.count,'osoba','osoby','osób')+' na zmianie';mark()};
     twoClick(del,()=>{ED.positions.splice(i,1);ED.staff.forEach(st=>st.positions=st.positions.filter(x=>x!==p.id));ED.rules.pairs=ED.rules.pairs.filter(x=>x.bPos!==p.id);mark();renderAll()});
     box.appendChild(r);
   });
 }
-$('addPos').onclick=()=>{ED.positions.push({id:tmpId('p'),name:'',short:'',count:1});mark();renderAll();$('edPos').lastElementChild.querySelector('input').focus()};
-let rpnT;function refreshPosNames(){clearTimeout(rpnT);rpnT=setTimeout(()=>{renderStaff();renderPairs()},500)}
+$('addPos').onclick=()=>{if(ED.positions.length>=MAX_POS){say(`Limit to ${MAX_POS} stanowisk.`,'err');return}ED.positions.push({id:tmpId('p'),name:'',short:'',count:1});mark();renderAll();$('edPos').lastElementChild.querySelector('input').focus()};
+let rpnT;function refreshPosNames(){clearTimeout(rpnT);rpnT=setTimeout(()=>{
+  ED.positions.forEach(p=>document.querySelectorAll(`#edStaff [data-p="${p.id}"]`).forEach(b=>b.textContent=p.name||'(bez nazwy)'));
+  if(!$('edPairs').contains(document.activeElement))renderPairs();
+},400)}
 
 /* ----- 2. pracownicy ----- */
+const okEmail=e=>!e||/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+const okPhone=t=>!t||/^\+?[0-9]{9,15}$/.test(String(t).replace(/[^0-9+]/g,''));
 function staffTags(s){
   const t=[];
   if(!s.positions.length)t.push(['warn','brak stanowiska']);
@@ -352,8 +369,8 @@ function staffTags(s){
   if((s.noWd||[]).length)t.push(['','wolne: '+WORDER.filter(w=>s.noWd.includes(w)).map(w=>WDS[w]).join(', ')]);
   if(s.picksOwn)t.push(['','sam wybiera dni']);
   if(s.manager)t.push(['','manager grafiku']);
-  if(s.email)t.push(['','e-mail']);
-  if(s.phone)t.push(['','telefon']);
+  if(s.email)t.push([okEmail(s.email)?'':'warn',okEmail(s.email)?'e-mail':'zły e-mail']);
+  if(s.phone)t.push([okPhone(s.phone)?'':'warn',okPhone(s.phone)?'telefon':'zły telefon']);
   return t.map(([c,x])=>`<span class="${c}">${esc(x)}</span>`).join('');
 }
 function renderStaff(){
@@ -367,19 +384,19 @@ function renderStaff(){
     el.innerHTML=`<div class="main">
         <input type="text" value="${esc(s.name)}" maxlength="40" placeholder="Imię" aria-label="Imię">
         <div class="chipsel" role="group" aria-label="Stanowiska">${chips||'<span class="hint">Najpierw dodaj stanowisko w kroku 1.</span>'}</div>
-        <div class="right">${s.pin?`<span class="pin" title="PIN do logowania">${esc(s.pin)}</span>`:''}<button type="button" data-a="more" aria-expanded="${open}">${open?'Mniej':'Więcej'}</button></div>
+        <div class="right">${s.pin?`<span class="pin" data-pin title="PIN do logowania" ${open?'hidden':''}>${esc(s.pin)}</span>`:''}<button type="button" data-a="more" aria-expanded="${open}" aria-label="${open?'Mniej':'Więcej'} ustawień: ${esc(s.name||'nowa osoba')}">${open?'Mniej':'Więcej'}</button></div>
       </div>
       <div class="tags">${staffTags(s)}</div>
       <div class="more" ${open?'':'hidden'}>
-        <div class="row">${s.pin?`<span class="hint">PIN:</span><span class="pin">${esc(s.pin)}</span><button type="button" data-a="pin">Nowy PIN</button><button type="button" data-a="msg">Skopiuj wiadomość z PIN-em</button>`:'<span class="hint">PIN pojawi się po zapisaniu.</span>'}<span class="status" data-st></span></div>
-        <div class="row"><span class="hint">Dni pracy w miesiącu</span><input type="number" inputmode="numeric" min="0" max="31" placeholder="od" value="${s.min??''}" data-f="min" style="width:76px"><span>–</span><input type="number" inputmode="numeric" min="0" max="31" placeholder="do" value="${s.max??''}" data-f="max" style="width:76px"><span class="hint">puste = po równo z innymi</span></div>
+        <div class="row">${s.pin?`<span class="hint">PIN:</span><span class="pin">${esc(s.pin)}</span><button type="button" data-a="pin">Nowy PIN</button><button type="button" data-a="msg" ${s.newPin?'disabled':''}>Skopiuj wiadomość z PIN-em</button>`:'<span class="hint">PIN pojawi się po zapisaniu.</span>'}<span class="status" data-st></span></div>
+        <div class="row"><span class="hint">Dni pracy w miesiącu</span><span class="fromto"><input type="number" inputmode="numeric" min="0" max="31" placeholder="od" value="${s.min??''}" data-f="min" aria-label="Minimum dni pracy w miesiącu"><span>–</span><input type="number" inputmode="numeric" min="0" max="31" placeholder="do" value="${s.max??''}" data-f="max" aria-label="Maksimum dni pracy w miesiącu"></span><span class="hint">puste = po równo z innymi</span></div>
         <div><span class="hint">Nigdy nie pracuje w</span><div class="checks" style="margin-top:5px">${wdC}</div></div>
         <label class="row" style="font-size:14px;gap:8px;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" data-f="own" ${s.picksOwn?'checked':''} style="margin-top:4px"><span>Sam wybiera dni <span class="hint">(pracuje tylko w dni, które zaznaczy w dyspozycyjności)</span></span></label>
         <label class="row" style="font-size:14px;gap:8px;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" data-f="mgr" ${s.manager?'checked':''} style="margin-top:4px"><span>Manager grafiku <span class="hint">(po zalogowaniu PIN-em może układać i zapisywać grafik)</span></span></label>
         <div class="grid2"><label class="f">E-mail (opcjonalnie)<input type="email" data-f="email" value="${esc(s.email||'')}" placeholder="do powiadomień o grafiku" autocomplete="off"></label>
           <label class="f">Telefon (opcjonalnie)<input type="tel" data-f="phone" value="${esc(s.phone||'')}" placeholder="np. 600 100 200" autocomplete="off"></label></div>
-        <p class="hint">Kontakt widzisz tylko Ty w panelu. Pracownicy nie widzą swoich danych nawzajem.</p>
-        <div><button type="button" class="warn" data-a="del"></button></div>
+        <p class="hint">E-mail i telefon widzisz tylko Ty w panelu. Posłużą do powiadomień o grafiku.</p>
+        <div><button type="button" class="warn" data-a="del" aria-label="Usuń pracownika ${esc(s.name)}"></button></div>
       </div>`;
     const tags=()=>{el.querySelector('.tags').innerHTML=staffTags(s)};
     el.querySelector('.main input').oninput=e=>{s.name=e.target.value;mark();renderPairsSoon()};
@@ -390,18 +407,19 @@ function renderStaff(){
     });
     el.querySelector('[data-a=more]').onclick=e=>{
       const m=el.querySelector('.more'),o=m.hidden;m.hidden=!o;e.target.textContent=o?'Mniej':'Więcej';e.target.setAttribute('aria-expanded',o);
+      const pn=el.querySelector('[data-pin]');if(pn)pn.hidden=o;
       o?OPEN_MORE.add(s.id):OPEN_MORE.delete(s.id);
     };
     el.querySelectorAll('[data-w]').forEach(c=>c.onchange=()=>{s.noWd=[...el.querySelectorAll('[data-w]:checked')].map(x=>+x.dataset.w);tags();mark()});
     el.querySelectorAll('[data-f=min],[data-f=max]').forEach(c=>c.oninput=()=>{s[c.dataset.f]=c.value===''?null:Math.max(0,Math.min(31,+c.value));tags();mark()});
     el.querySelector('[data-f=own]').onchange=e=>{s.picksOwn=e.target.checked;tags();mark()};
     el.querySelector('[data-f=mgr]').onchange=e=>{s.manager=e.target.checked;tags();mark()};
-    el.querySelectorAll('[data-f=email],[data-f=phone]').forEach(c=>c.oninput=()=>{s[c.dataset.f]=c.value.trim();tags();mark()});
+    el.querySelectorAll('[data-f=email],[data-f=phone]').forEach(c=>c.oninput=()=>{s[c.dataset.f]=c.value.trim();c.setAttribute('aria-invalid',!(c.dataset.f==='email'?okEmail:okPhone)(s[c.dataset.f]));tags();mark()});
     twoClick(el.querySelector('[data-a=del]'),()=>{ED.staff.splice(i,1);ED.rules.pairs=ED.rules.pairs.filter(p=>p.a!==s.id&&p.b!==s.id);ED.rules.apart=ED.rules.apart.filter(p=>p.a!==s.id&&p.b!==s.id);mark();renderAll()},'Usuń pracownika');
-    const pinB=el.querySelector('[data-a=pin]');if(pinB)pinB.onclick=()=>{s.newPin=true;mark();el.querySelectorAll('.pin').forEach(x=>x.textContent='nowy po zapisaniu');pinB.disabled=true};
+    const pinB=el.querySelector('[data-a=pin]');if(pinB)pinB.onclick=()=>{s.newPin=true;mark();el.querySelectorAll('.pin').forEach(x=>x.textContent='nowy po zapisaniu');pinB.disabled=true;const mb=el.querySelector('[data-a=msg]');if(mb){mb.disabled=true;mb.textContent='Zapisz, żeby dostać nowy PIN'}};
     const msgB=el.querySelector('[data-a=msg]');if(msgB)msgB.onclick=async()=>{
       const txt=`Cześć ${s.name}! Grafik w ${ED.name} robimy teraz w Zmiano. Wejdź na ${location.origin}/l/${ED.slug}, kliknij swoje imię i wpisz PIN: ${s.pin}. Zaznacz, kiedy możesz pracować, i kliknij „Zapisz”.`;
-      const st=el.querySelector('[data-st]');
+      const st=el.querySelector('[data-st]');if(s.newPin)return;
       try{await navigator.clipboard.writeText(txt);st.textContent='Skopiowane. Wyślij prywatnie, nie na grupę.';st.className='status ok'}catch(e){st.textContent=txt}
     };
     box.appendChild(el);
@@ -409,15 +427,15 @@ function renderStaff(){
 }
 let rpT;function renderPairsSoon(){clearTimeout(rpT);rpT=setTimeout(()=>{renderPairs();renderApart()},400)}
 const newStaff=name=>({id:tmpId('s'),name,positions:ED.positions.length===1?[ED.positions[0].id]:[],min:null,max:null,noWd:[],picksOwn:false,manager:false});
-$('addStaff').onclick=()=>{ED.staff.push(newStaff(''));mark();renderStaff();$('edStaff').lastElementChild.querySelector('input').focus()};
+$('addStaff').onclick=()=>{if(ED.staff.length>=MAX_STAFF){say(`Limit to ${MAX_STAFF} pracowników.`,'err');return}ED.staff.push(newStaff(''));mark();renderStaff();$('edStaff').lastElementChild.querySelector('input').focus()};
 $('addMany').onclick=()=>{$('manyBox').hidden=false;$('manyTxt').focus()};
 $('manyCancel').onclick=()=>{$('manyBox').hidden=true;$('manyTxt').value=''};
 $('manyAdd').onclick=()=>{
-  const names=$('manyTxt').value.split(/[\n,;]+/).map(x=>x.trim().slice(0,40)).filter(Boolean);
-  const room=60-ED.staff.length;
+  const names=$('manyTxt').value.split(/[\n;]+/).map(x=>x.trim().slice(0,40)).filter(Boolean);
+  const room=MAX_STAFF-ED.staff.length;
   names.slice(0,room).forEach(n=>ED.staff.push(newStaff(n)));
   $('manyTxt').value='';$('manyBox').hidden=true;mark();renderStaff();renderPairsSoon();
-  if(names.length>room){$('edStatus').textContent='Limit to 60 pracowników, część imion pominięto.';$('edStatus').className='status err'}
+  if(names.length>room)say(`Limit to ${MAX_STAFF} pracowników, część imion pominięto.`,'err');
 };
 
 /* ----- zasady ----- */
@@ -438,12 +456,13 @@ function renderPairs(){
     const bn=()=>{r.querySelector('[data-bn]').textContent=(ED.staff.find(x=>x.id===p.b)||{}).name||'druga osoba'};bn();
     r.querySelectorAll('select').forEach(s=>s.onchange=()=>{p[s.dataset.k]=s.value;
       if(s.dataset.k==='b'){const ps=r.querySelector('[data-k=bPos]');ps.innerHTML=posOptsFor(p.b,p.bPos);p.bPos=ps.value;bn()}mark()});
-    p.bPos=r.querySelector('[data-k=bPos]').value||p.bPos;
+    r.querySelectorAll('select').forEach(x=>{if(x.value)p[x.dataset.k]=x.value});
     twoClick(r.querySelector('button'),()=>{ED.rules.pairs.splice(i,1);mark();renderPairs()});
     box.appendChild(r);
   });
 }
-const twoStaff=()=>{const n=named(ED.staff);if(n.length<2){$('edStatus').textContent='Najpierw dodaj co najmniej dwóch pracowników z imionami.';$('edStatus').className='status err';return null}return n};
+function say(t,c=''){$('edStatus').textContent=t;$('edStatus').className='status '+c}
+const twoStaff=()=>{const n=named(ED.staff);if(n.length<2){say('Najpierw dodaj co najmniej dwóch pracowników z imionami.','err');return null}return n};
 $('addPair').onclick=()=>{const n=twoStaff();if(!n)return;
   const b=n.find(s=>s.positions.length&&s!==n[0])||n[1];
   ED.rules.pairs.push({a:(b===n[0]?n[1]:n[0]).id,b:b.id,bPos:b.positions[0]||''});mark();renderPairs()};
@@ -452,131 +471,180 @@ function renderApart(){
   ED.rules.apart.forEach((p,i)=>{
     const r=document.createElement('div');r.className='rule';
     r.innerHTML=`<select data-k="a" aria-label="Pierwsza osoba">${staffOpts(p.a)}</select> i <select data-k="b" aria-label="Druga osoba">${staffOpts(p.b)}</select> nigdy nie są razem na zmianie <button class="warn"></button>`;
-    r.querySelectorAll('select').forEach(s=>s.onchange=()=>{p[s.dataset.k]=s.value;mark()});
+    r.querySelectorAll('select').forEach(s=>{if(s.value)p[s.dataset.k]=s.value;s.onchange=()=>{p[s.dataset.k]=s.value;mark()}});
     twoClick(r.querySelector('button'),()=>{ED.rules.apart.splice(i,1);mark();renderApart()});
     box.appendChild(r);
   });
 }
 $('addApart').onclick=()=>{const n=twoStaff();if(!n)return;ED.rules.apart.push({a:n[0].id,b:n[1].id});mark();renderApart()};
 $('edName').oninput=()=>{ED.name=$('edName').value;mark()};
-$('steps').querySelectorAll('li').forEach(li=>li.onclick=()=>$(li.dataset.go).scrollIntoView({behavior:'smooth',block:'start'}));
+const goTo=id=>{const el=$(id);el.scrollIntoView({behavior:'smooth',block:'start'})};
+$('steps').querySelectorAll('li').forEach(li=>{li.tabIndex=0;li.setAttribute('role','button');li.onclick=()=>goTo(li.dataset.go);li.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();goTo(li.dataset.go)}}});
 
 /* ----- 3. sprawdzanie na bieżąco ----- */
 function nextMonth(){const d=new Date();return {year:d.getMonth()===11?d.getFullYear()+1:d.getFullYear(),month0:(d.getMonth()+1)%12}}
-function check(){
-  const I=[],err=(t,step)=>I.push({c:'err',t,step}),warn=(t,step)=>I.push({c:'warn',t,step});
-  const pos=named(ED.positions),staff=named(ED.staff),R=ED.rules,maxRun=R.maxRun||5,openWd=R.openWd||[0,1,2,3,4,5,6];
-  const {year,month0}=nextMonth(),n=new Date(year,month0+1,0).getDate();
-  const wd=d=>new Date(year,month0,d).getDay();
-  const openDays=[];for(let d=1;d<=n;d++)if(openWd.includes(wd(d)))openDays.push(d);
-  const O=openDays.length;
-  if(!pos.length)err('Dodaj przynajmniej jedno stanowisko, np. „Kuchnia” albo „Kelnerka”.',1);
-  if(ED.positions.length>pos.length)warn('Stanowisko bez nazwy zostanie pominięte przy zapisie.',1);
-  const shorts={};pos.forEach(p=>{const k=(p.short||'').toUpperCase();if(k){if(shorts[k])warn(`„${shorts[k]}” i „${p.name}” mają ten sam skrót ${k}. W grafiku będą nie do odróżnienia.`,1);else shorts[k]=p.name}});
-  if(!openWd.length)err('Zaznacz w Zasadach co najmniej jeden dzień, w którym lokal jest otwarty.',0);
-  if(!staff.length)err('Dodaj pracowników.',2);
-  if(ED.staff.length>staff.length)warn('Pracownik bez imienia zostanie pominięty przy zapisie.',2);
-  const seen={};staff.forEach(s=>{const k=s.name.trim().toLowerCase();if(seen[k])warn(`Dwie osoby nazywają się „${s.name}”. Dopisz np. inicjał nazwiska, bo pracownicy logują się, klikając imię.`,2);seen[k]=1});
-  // możliwości każdej osoby w miesiącu
-  const cap={};
-  staff.forEach(s=>{
-    if(!s.positions.length){err(`${s.name} nie ma zaznaczonego stanowiska, więc nie trafi do grafiku.`,2);cap[s.id]=0;return}
-    const avail=openDays.filter(d=>!(s.noWd||[]).includes(wd(d))).length;
-    if(O&&!avail){err(`${s.name} ma wolne we wszystkie dni otwarcia lokalu.`,2);cap[s.id]=0;return}
-    const byRun=Math.floor(avail*maxRun/(maxRun+1))+1;
-    let c=Math.min(avail,byRun);
-    if(s.min!=null&&s.max!=null&&s.min>s.max)warn(`${s.name}: „od” jest większe niż „do”. Zamienimy je przy zapisie.`,2);
-    const mn=s.min!=null&&s.max!=null?Math.min(s.min,s.max):s.min,mx=s.min!=null&&s.max!=null?Math.max(s.min,s.max):(s.max??s.min);
-    if(mn!=null&&mn>avail)err(`${s.name} ma minimum ${mn} dni, a w ${MONTHS[month0]} może pracować najwyżej ${avail} (dni otwarcia minus stałe wolne).`,2);
-    else if(mn!=null&&mn>c)warn(`${s.name}: ${mn} dni przy limicie ${maxRun} dni z rzędu jest trudne do ułożenia (realnie ok. ${c}).`,2);
-    if(mx!=null)c=Math.min(c,mx);
-    if(s.picksOwn)c=Math.min(c,mx??c);
-    cap[s.id]=c;
-  });
-  // obsada stanowisk
-  let need=0;
-  pos.forEach(p=>{
-    const el=staff.filter(s=>s.positions.includes(p.id)&&cap[s.id]>0);
-    need+=O*p.count;
-    if(el.length<p.count){err(`${p.name}: na zmianie potrzeba ${p.count} ${p.count===1?'osoby':'osób'}, a to stanowisko ma zaznaczone ${el.length}. Zaznacz je u kolejnych pracowników.`,2);return}
-    const supply=el.reduce((a,s)=>a+cap[s.id],0);
-    if(supply<O*p.count)warn(`${p.name}: w ${MONTHS[month0]} trzeba obsadzić ${O*p.count} zmian, a osoby z tym stanowiskiem dadzą radę ok. ${supply} (limit ${maxRun} dni z rzędu, stałe wolne, limity dni). Dodaj osobę albo poluzuj limity.`,2);
-  });
-  const total=staff.reduce((a,s)=>a+cap[s.id],0);
-  if(pos.length&&staff.length&&total<need&&!I.some(x=>x.c==='err'))warn(`Łącznie w ${MONTHS[month0]} jest ${need} zmian do obsadzenia, a zespół da radę ok. ${total}. Część dni zostanie bez obsady.`,2);
-  // zasady par
-  const nm=id=>(ED.staff.find(s=>s.id===id)||{}).name||'?';
-  R.pairs.forEach(p=>{
-    if(p.a===p.b)err(`Zasada „gdy dwie osoby są razem”: wybierz dwie różne osoby (teraz 2× ${nm(p.a)}).`,0);
-    else{const b=ED.staff.find(s=>s.id===p.b);if(b&&!b.positions.includes(p.bPos))err(`Zasada: ${b.name} miał(a)by iść na stanowisko, którego nie ma zaznaczonego.`,0)}
-  });
-  R.apart.forEach(p=>{if(p.a===p.b)err(`Zasada „nie mogą być razem”: wybierz dwie różne osoby (teraz 2× ${nm(p.a)}).`,0)});
-  // pokaż
-  const box=$('issues');
-  if(!I.length)box.innerHTML=`<li class="ok">Wszystko się zgadza. Wygeneruj próbny grafik na ${MONTHS[month0]} i zobacz, jak wychodzi.</li>`;
-  else box.innerHTML=I.sort((a,b)=>(a.c==='err'?0:1)-(b.c==='err'?0:1)).map(x=>`<li class="${x.c}">${esc(x.t)}</li>`).join('');
-  const has=(st,c)=>I.some(x=>x.step===st&&(!c||x.c===c));
-  const setStep=(k,ok,bad,txt)=>{const li=$('steps').children[k];li.classList.toggle('done',ok&&!bad);li.classList.toggle('bad',bad);$('st'+(k+1)).textContent=txt};
-  setStep(0,pos.length>0,has(1,'err'),pos.length?`${pos.length} ${pos.length===1?'stanowisko':pos.length<5?'stanowiska':'stanowisk'}, ${pos.reduce((a,p)=>a+p.count,0)} os. na zmianie`:'kogo potrzebujesz na zmianie');
-  setStep(1,staff.length>0,has(2,'err'),staff.length?`${staff.length} ${staff.length===1?'osoba':staff.length<5?'osoby':'osób'}`:'kto u Ciebie pracuje');
-  const errs=I.filter(x=>x.c==='err').length,warns=I.length-errs;
-  setStep(2,!I.length,errs>0,errs?`${errs} do poprawy`:warns?`${warns} ${warns===1?'uwaga':'uwagi'}`:'wszystko gra');
-  $('trialBtn').disabled=!pos.length||!staff.some(s=>s.positions.length);
-  return I;
-}
 const MONTHS=['styczniu','lutym','marcu','kwietniu','maju','czerwcu','lipcu','sierpniu','wrześniu','październiku','listopadzie','grudniu'];
 const MONTHS_N=['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+let ISSUES=[];
+function check(){
+  const I=[];
+  const add=(c,t,go,o={})=>I.push({c,t,go,...o});
+  const pos=named(ED.positions),staff=named(ED.staff),R=ED.rules,maxRun=R.maxRun||5,openWd=R.openWd||[0,1,2,3,4,5,6];
+  const {year,month0}=nextMonth(),n=new Date(year,month0+1,0).getDate(),M=MONTHS[month0];
+  const wd=d=>new Date(year,month0,d).getDay();
+  const O=Array.from({length:n},(_,i)=>i+1).filter(d=>openWd.includes(wd(d))).length;
+  const nm=id=>(ED.staff.find(s=>s.id===id)||{}).name||'?';
+
+  if(!pos.length)add('err','Dodaj przynajmniej jedno stanowisko, np. „Kuchnia” albo „Kelnerka”.','secPos',{step:1});
+  if(ED.positions.length>pos.length)add('warn','Stanowisko bez nazwy zostanie pominięte przy zapisie.','secPos',{step:1});
+  const shorts={};pos.forEach(p=>{const k=(p.short||'').toUpperCase();if(!k)return;if(shorts[k])add('warn',`„${shorts[k]}” i „${p.name}” mają ten sam skrót ${k}. W grafiku nie da się ich odróżnić.`,'secPos',{step:1});else shorts[k]=p.name});
+  if(!staff.length)add('err','Dodaj pracowników.','secStaff',{step:2});
+  if(ED.staff.length>staff.length)add('warn','Pracownik bez imienia zostanie pominięty przy zapisie.','secStaff',{step:2});
+  const cnt={};staff.forEach(s=>{const k=s.name.trim().toLowerCase();cnt[k]=(cnt[k]||0)+1});
+  Object.entries(cnt).filter(([,c])=>c>1).forEach(([k,c])=>add('warn',`${c} ${plural(c,'osoba','osoby','osób')} nazywa${c<5?'ją':''} się „${staff.find(s=>s.name.trim().toLowerCase()===k).name}”. Dopisz np. inicjał nazwiska, bo pracownicy logują się, klikając swoje imię.`,'secStaff',{step:2}));
+  // kontakt
+  staff.forEach(s=>{
+    if(!okEmail(s.email))add('err',`${s.name}: popraw e-mail albo zostaw pole puste.`,{staff:s.id,f:'email'},{step:2,block:true,trialOk:true});
+    if(!okPhone(s.phone))add('err',`${s.name}: numer telefonu powinien mieć 9–15 cyfr.`,{staff:s.id,f:'phone'},{step:2,block:true,trialOk:true});
+  });
+  // zasady osób
+  R.pairs.forEach(p=>{
+    if(p.a===p.b)add('err',`Zasada „gdy dwie osoby są razem”: wybierz dwie różne osoby (teraz dwa razy ${nm(p.a)}).`,'secRules',{block:true});
+    else{const b=ED.staff.find(s=>s.id===p.b);if(b&&!b.positions.includes(p.bPos))add('err',`Zasada: ${b.name} ma iść na stanowisko, którego nie ma zaznaczonego. Zaznacz je albo zmień zasadę.`,'secRules',{block:true})}
+  });
+  R.apart.forEach(p=>{if(p.a===p.b)add('err',`Zasada „nigdy razem”: wybierz dwie różne osoby (teraz dwa razy ${nm(p.a)}).`,'secRules',{block:true})});
+
+  if(!openWd.length)add('err','Zaznacz w Zasadach co najmniej jeden dzień, w którym lokal jest otwarty.','secRules',{block:true});
+  else{
+    // ile dni realnie może przepracować każda osoba (kalendarz, stałe wolne, limit dni z rzędu)
+    const cap={},noPos=[];
+    staff.forEach(s=>{
+      if(!s.positions.some(id=>pos.some(p=>p.id===id))){noPos.push(s.name);cap[s.id]=0;return}
+      let avail=0,most=0,run=0;
+      for(let d=1;d<=n;d++){
+        const ok=openWd.includes(wd(d))&&!(s.noWd||[]).includes(wd(d));
+        if(!ok){run=0;continue}
+        avail++;if(run<maxRun){most++;run++}else run=0;
+      }
+      if(!avail){add('err',`${s.name} ma wolne we wszystkie dni otwarcia lokalu.`,{staff:s.id},{step:2});cap[s.id]=0;return}
+      const lo=s.min!=null&&s.max!=null?Math.min(s.min,s.max):s.min,hi=s.min!=null&&s.max!=null?Math.max(s.min,s.max):(s.max??s.min);
+      if(s.min!=null&&s.max!=null&&s.min>s.max)add('warn',`${s.name}: „od” jest większe niż „do”. Zamienimy je przy zapisie.`,{staff:s.id},{step:2});
+      if(lo!=null&&lo>most)add('err',`${s.name} nie przepracuje ${lo} dni: w ${M} wyjdzie najwyżej ${most} (dni otwarcia, stałe wolne i limit ${maxRun} dni z rzędu). Obniż minimum albo podnieś limit.`,{staff:s.id},{step:2,trialOk:true});
+      cap[s.id]=Math.min(most,hi??most);
+    });
+    if(noPos.length)add('err',`Bez stanowiska: ${noPos.join(', ')}. Zaznacz im stanowiska w kroku 2, inaczej nie trafią do grafiku.`,'secStaff',{step:2,trialOk:true});
+    let need=0;
+    pos.forEach(p=>{
+      const el=staff.filter(s=>s.positions.includes(p.id)&&cap[s.id]>0);
+      need+=O*p.count;
+      if(el.length<p.count){add('err',`${p.name}: potrzebujesz ${p.count} ${plural(p.count,'osoby','osób','osób')} na zmianie, a to stanowisko ${el.length?`ma zaznaczone tylko ${el.length} ${plural(el.length,'osoba','osoby','osób')}`:'nie ma zaznaczone u nikogo'}. Zaznacz je u kolejnych pracowników.`,'secStaff',{step:2});return}
+      R.apart.forEach(a=>{if(el.length===p.count&&el.some(s=>s.id===a.a)&&el.some(s=>s.id===a.b))add('err',`${p.name}: ${nm(a.a)} i ${nm(a.b)} mają być zawsze osobno, ale na tym stanowisku muszą pracować wszyscy naraz. Dodaj osobę na to stanowisko albo usuń zasadę.`,'secRules')});
+      const supply=el.reduce((a,s)=>a+cap[s.id],0);
+      if(supply<O*p.count)add('warn',`${p.name}: w ${M} trzeba obsadzić ${O*p.count} ${plural(O*p.count,'zmianę','zmiany','zmian')}, a osoby z tym stanowiskiem dadzą radę ok. ${supply}. Dodaj osobę albo poluzuj limity.`,'secStaff',{step:2});
+    });
+    const total=staff.reduce((a,s)=>a+cap[s.id],0);
+    if(pos.length&&staff.length&&total<need&&!I.some(x=>x.c==='err'))add('warn',`Łącznie w ${M} jest ${need} ${plural(need,'zmiana','zmiany','zmian')} do obsadzenia, a zespół da radę ok. ${total}. Część dni zostanie bez obsady.`,'secStaff',{step:2});
+  }
+  ISSUES=I;
+  // pokaż
+  const box=$('issues');box.innerHTML='';
+  if(!I.length)box.innerHTML=`<li class="ok">Wszystko się zgadza. Wygeneruj próbny grafik na ${MONTHS_N[month0]} i zobacz, jak wychodzi.</li>`;
+  I.sort((a,b)=>(a.c==='err'?0:1)-(b.c==='err'?0:1)).forEach(x=>{
+    const li=document.createElement('li');li.className=x.c;
+    const b=document.createElement('button');b.type='button';b.className='iss';b.textContent=x.t;b.onclick=()=>goIssue(x.go);
+    li.appendChild(b);box.appendChild(li);
+  });
+  const has=(st,c)=>I.some(x=>x.step===st&&(!c||x.c===c));
+  const setStep=(k,ok,bad,txt)=>{const li=$('steps').children[k];li.classList.toggle('done',ok&&!bad);li.classList.toggle('bad',bad);$('st'+(k+1)).textContent=txt};
+  const slotsN=pos.reduce((a,p)=>a+p.count,0);
+  setStep(0,pos.length>0,has(1,'err'),pos.length?`${pos.length} ${plural(pos.length,'stanowisko','stanowiska','stanowisk')}, ${slotsN} ${plural(slotsN,'osoba','osoby','osób')} na zmianie`:'kogo potrzebujesz na zmianie');
+  setStep(1,staff.length>0,has(2,'err'),staff.length?`${staff.length} ${plural(staff.length,'osoba','osoby','osób')}`:'kto u Ciebie pracuje');
+  const errs=I.filter(x=>x.c==='err').length,warns=I.length-errs;
+  const sum=errs?`${errs} do poprawy`:warns?`${warns} ${plural(warns,'uwaga','uwagi','uwag')}`:'wszystko gra';
+  setStep(2,!I.length,errs>0,sum);
+  if($('issSum').textContent!==sum)$('issSum').textContent='Sprawdzenie: '+sum;
+  const can=pos.length&&staff.some(s=>s.positions.length);
+  const tb=I.some(x=>x.c==='err'&&!x.trialOk);
+  $('trialBtn').disabled=!can||tb||TRIAL_RUNNING;
+  $('trialHint').textContent=tb?'Najpierw popraw czerwone punkty powyżej.':'Nic nie zapisuje, tylko pokazuje, jak to wyjdzie.';
+  return I;
+}
+function goIssue(go){
+  if(typeof go==='string'){goTo(go);return}
+  if(go&&go.staff){
+    OPEN_MORE.add(go.staff);renderStaff();
+    const i=ED.staff.findIndex(s=>s.id===go.staff),card=$('edStaff').children[i];if(!card)return;
+    card.scrollIntoView({behavior:'smooth',block:'center'});
+    const f=go.f&&card.querySelector(`[data-f=${go.f}]`);(f||card.querySelector('input')).focus({preventScroll:true});
+  }
+}
 let ckT;function checkSoon(){clearTimeout(ckT);ckT=setTimeout(check,250)}
 
-/* ----- próbny grafik ----- */
+/* ----- próbny grafik (w osobnym wątku, żeby strona nie stała) ----- */
+let TRIAL_RUNNING=false,worker=null;
+function getWorker(){
+  if(worker)return worker;
+  const src=`importScripts(${JSON.stringify(location.origin+'/app/engine.js')});onmessage=e=>{const o=e.data;o.closed=new Set(o.closed);try{postMessage({A:ZmianoEngine.solve(o)})}catch(x){postMessage({err:x.message})}}`;
+  worker=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));
+  return worker;
+}
 $('trialBtn').onclick=()=>{
-  const out=$('trial');out.hidden=false;out.innerHTML='<p class="hint">Układam próbny grafik…</p>';$('trialBtn').disabled=true;
-  setTimeout(()=>{
-    try{
-      const {year,month0}=nextMonth(),n=new Date(year,month0+1,0).getDate(),wd=d=>new Date(year,month0,d).getDay();
-      const positions=named(ED.positions),staff=named(ED.staff).map(s=>({...s,positions:s.positions.filter(id=>positions.some(p=>p.id===id))})).filter(s=>s.positions.length);
-      const rules={maxRun:ED.rules.maxRun||5,openWd:ED.rules.openWd||[0,1,2,3,4,5,6],pairs:ED.rules.pairs,apart:ED.rules.apart};
-      const A=ZmianoEngine.solve({year,month0,positions,staff,prefs:{},rules,closed:new Set(),base:null});
-      const slots=ZmianoEngine.slotsOf(positions),short=Object.fromEntries(positions.map(p=>[p.id,p.short||p.name[0]]));
-      // problemy
-      let holes=0;const holeDays=new Set();
-      A.forEach((day,i)=>{if(!day)return;const seen={};slots.forEach(s=>{const v=day[s.key];if(!v||seen[v]){holes++;holeDays.add(i+1)}if(v)seen[v]=1})});
-      const notes=[];
-      if(holes)notes.push(`${holes} ${holes===1?'zmiana':'zmian'} bez obsady (dni: ${[...holeDays].slice(0,10).join(', ')}${holeDays.size>10?'…':''}).`);
-      staff.forEach(s=>{
-        const cnt=A.filter(d=>ZmianoEngine.works(d,s.id)).length;s._cnt=cnt;
-        let run=0,mr=0;A.forEach(d=>{run=ZmianoEngine.works(d,s.id)?run+1:0;mr=Math.max(mr,run)});
-        if(mr>rules.maxRun)notes.push(`${s.name} pracuje ${mr} dni z rzędu.`);
-        if(s.min!=null&&cnt<Math.min(s.min,s.max??s.min))notes.push(`${s.name}: ${cnt} dni zamiast co najmniej ${Math.min(s.min,s.max??s.min)}.`);
-        if(s.picksOwn)s._own=true;
-      });
-      const head=Array.from({length:n},(_,i)=>`<th class="${[0,6].includes(wd(i+1))?'we':''}"><b>${i+1}</b>${WDS[wd(i+1)]}</th>`).join('');
-      const rows=staff.map(s=>`<tr><td class="name">${esc(s.name)} <span class="hint">${s._cnt}</span></td>${A.map((d,i)=>{const p=ZmianoEngine.slotOf(d,s.id);return `<td class="${!d?'closed':[0,6].includes(wd(i+1))?'we':''} ${p?'pc':''}">${p?esc(short[p]):''}</td>`}).join('')}</tr>`).join('');
-      out.innerHTML=`<div class="trialsum">
-        <h3>Próbny grafik: ${MONTHS_N[month0]} ${year}</h3>
-        <ul class="issues">${notes.length?notes.map(t=>`<li class="warn">${esc(t)}</li>`).join(''):'<li class="ok">Wszystkie zmiany obsadzone, zasady zachowane.</li>'}</ul>
-        <p class="hint">Bez dyspozycyjności pracowników${staff.some(s=>s.picksOwn)?' (osoby „sam wybiera dni” nie mają jeszcze zaznaczonych dni, więc w próbie traktujemy je jak resztę)':''}. Prawdziwy grafik ułożysz w zakładce Grafik, gdy ekipa wpisze swoje dni. Liczba przy imieniu to dni pracy.</p>
-        <div class="tablewrap"><table class="sheet"><thead><tr><th class="name">Osoba</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
-      </div>`;
-    }catch(e){out.innerHTML=`<p class="status err">Nie udało się ułożyć próbnego grafiku: ${esc(e.message)}</p>`}
-    finally{$('trialBtn').disabled=false}
-  },30);
+  if(check().some(x=>x.c==='err'&&!x.trialOk))return;
+  const out=$('trial');out.hidden=false;out.innerHTML='<p class="hint" role="status">Układam próbny grafik… (do kilku sekund)</p>';
+  TRIAL_RUNNING=true;$('trialBtn').disabled=true;
+  const {year,month0}=nextMonth(),n=new Date(year,month0+1,0).getDate(),wd=d=>new Date(year,month0,d).getDay();
+  const positions=named(ED.positions).map(p=>({id:p.id,name:p.name,short:p.short,count:p.count}));
+  // w próbie nikt nie ma jeszcze dyspozycyjności, więc „sam wybiera dni” traktujemy jak resztę
+  const staff=named(ED.staff).map(s=>({id:s.id,name:s.name,positions:s.positions.filter(id=>positions.some(p=>p.id===id)),min:s.min,max:s.max,noWd:s.noWd||[],picksOwn:false})).filter(s=>s.positions.length);
+  const rules={maxRun:ED.rules.maxRun||5,openWd:ED.rules.openWd||[0,1,2,3,4,5,6],pairs:ED.rules.pairs,apart:ED.rules.apart};
+  const done=r=>{TRIAL_RUNNING=false;check();
+    if(r.err||!r.A){out.innerHTML=`<p class="status err">Nie udało się ułożyć próbnego grafiku. ${esc(r.err||'')}</p>`;return}
+    showTrial(r.A,{year,month0,n,wd,positions,staff,rules});
+  };
+  let w;try{w=getWorker()}catch(e){w=null}
+  const opts={year,month0,positions,staff,prefs:{},rules,closed:[],base:null,timeMs:2500};
+  if(w){w.onmessage=e=>done(e.data);w.onerror=()=>{worker=null;done({err:'Spróbuj ponownie.'})};w.postMessage(opts)}
+  else setTimeout(()=>{try{done({A:ZmianoEngine.solve({...opts,closed:new Set()})})}catch(e){done({err:e.message})}},30);
 };
+function showTrial(A,{year,month0,n,wd,positions,staff,rules}){
+  const slots=ZmianoEngine.slotsOf(positions),short=Object.fromEntries(positions.map(p=>[p.id,p.short||p.name[0]]));
+  let holes=0;const holeDays=[];
+  A.forEach((day,i)=>{if(!day)return;const seen={};let h=0;slots.forEach(s=>{const v=day[s.key];if(!v||seen[v])h++;if(v)seen[v]=1});if(h){holes+=h;holeDays.push(i+1)}});
+  const notes=[];
+  if(holes)notes.push(`W ${holeDays.length} ${plural(holeDays.length,'dniu','dniach','dniach')} brakuje ludzi (dni: ${holeDays.slice(0,10).join(', ')}${holeDays.length>10?'…':''}). Dodaj osoby albo poluzuj limity.`);
+  staff.forEach(s=>{
+    const c=A.filter(d=>ZmianoEngine.works(d,s.id)).length;s._cnt=c;
+    let run=0,mr=0;A.forEach(d=>{run=ZmianoEngine.works(d,s.id)?run+1:0;mr=Math.max(mr,run)});
+    if(mr>rules.maxRun)notes.push(`${s.name} pracuje ${mr} dni z rzędu.`);
+    const lo=s.min!=null?Math.min(s.min,s.max??s.min):null;
+    if(lo!=null&&c<lo)notes.push(`${s.name}: ${c} ${plural(c,'dzień','dni','dni')} zamiast co najmniej ${lo}.`);
+  });
+  const head=Array.from({length:n},(_,i)=>`<th class="${[0,6].includes(wd(i+1))?'we':''}"><b>${i+1}</b>${WDS[wd(i+1)]}</th>`).join('');
+  const rows=staff.map(s=>`<tr><td class="name">${esc(s.name)} <span class="hint">${s._cnt}</span></td>${A.map((d,i)=>{const p=ZmianoEngine.slotOf(d,s.id);return `<td class="${!d?'closed':[0,6].includes(wd(i+1))?'we':''} ${p?'pc':''}">${p?esc(short[p]):''}</td>`}).join('')}</tr>`).join('');
+  $('trial').innerHTML=`<div class="trialsum">
+    <h3>Próbny grafik: ${MONTHS_N[month0]} ${year}</h3>
+    <ul class="issues">${notes.length?notes.map(t=>`<li class="warn">${esc(t)}</li>`).join(''):'<li class="ok">Wszystkie zmiany obsadzone, zasady zachowane.</li>'}</ul>
+    <p class="hint">Próba nie uwzględnia dyspozycyjności, bo pracownicy jeszcze jej nie wpisali. Prawdziwy grafik ułożysz w zakładce Grafik, gdy ekipa poda swoje dni. Liczba przy imieniu to dni pracy.</p>
+    <div class="tablewrap"><table class="sheet"><thead><tr><th class="name">Osoba</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+  </div>`;
+}
 
 $('edSave').onclick=async()=>{
-  const btn=$('edSave');btn.disabled=true;$('edStatus').textContent='Zapisuję…';$('edStatus').className='status';
+  const block=check().filter(x=>x.block);
+  if(block.length){say(`Nie zapisano. Popraw najpierw: ${block[0].t}`,'err');goIssue(block[0].go);return}
+  const btn=$('edSave');btn.disabled=true;say('Zapisuję…');
   try{
     const r=await api('lokalSave',{slug:ED.slug,config:{name:ED.name,positions:ED.positions,staff:ED.staff,rules:ED.rules}});
-    const st=ED.status,openNames=new Set(ED.staff.filter(s=>OPEN_MORE.has(s.id)).map(s=>s.name.trim()));
-    ED=r.lokal;ED.status=ED.status||st;dirty=false;
-    OPEN_MORE.clear();ED.staff.forEach(s=>{if(openNames.has(s.name))OPEN_MORE.add(s.id)});
+    const st=ED.status;
+    ED=r.lokal;ED.status=ED.status||st;ED.rules.pairs=ED.rules.pairs||[];ED.rules.apart=ED.rules.apart||[];dirty=false;
     $('edTitle').textContent=ED.name;$('edMaxRun').value=ED.rules.maxRun||5;renderAll();
-    const errs=check().filter(x=>x.c==='err').length;
-    $('edStatus').textContent=errs?'Zapisane. W kroku 3 są rzeczy do poprawy.':'Zapisane. Nowi pracownicy mają już PIN-y.';$('edStatus').className=errs?'status err':'status ok';
-  }catch(x){$('edStatus').textContent=x.message;$('edStatus').className='status err'}
+    const errs=ISSUES.filter(x=>x.c==='err').length;
+    say(errs?'Zapisane. W kroku 3 zostały rzeczy do poprawy.':'Zapisane. Nowi pracownicy mają już PIN-y.',errs?'err':'ok');
+  }catch(x){say(x.message,'err')}
   finally{btn.disabled=false}
 };
 $('copyLink').onclick=async()=>{try{await navigator.clipboard.writeText(`${location.origin}/l/${ED.slug}`);$('copyLink').textContent='Skopiowane'}catch(e){}};
+$('edClose').onclick=()=>{if(dirty&&!confirm('Masz niezapisane zmiany. Wyjść bez zapisywania?'))return;dirty=false;show('vAdmin');loadAdmin()};
 addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
 boot().catch(()=>{show('vAuth');authTab('fLogin')});
 </script>
