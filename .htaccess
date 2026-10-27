@@ -3,4 +3,5 @@ Options -Indexes
 RewriteEngine On
 # panel szefa i grafik lokalu
 RewriteRule ^panel/?$ app/panel.html [L]
+RewriteRule ^(regulamin|prywatnosc|umowa-powierzenia)/?$ prawo/$1.html [L]
 RewriteRule ^l/([a-z0-9-]+)/?$ app/grafik.html [L]

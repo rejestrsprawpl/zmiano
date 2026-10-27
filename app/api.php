@@ -93,7 +93,7 @@ function dayList($a, int $n): array { if (!is_array($a)) return []; $r = []; for
 function numOrNull($v): ?int { if ($v === null || $v === '') return null; return max(0, min(31, (int)$v)); }
 // konfiguracja lokalu widoczna dla pracowników (bez PIN-ów)
 function pubLokal(array $l, bool $withPins = false): array {
-  $staff = array_map(function ($s) use ($withPins) { if (!$withPins) unset($s['pin']); return $s; }, array_values(array_filter($l['staff'] ?? [], fn($s) => !empty($s['active']))));
+  $staff = array_map(function ($s) use ($withPins) { if (!$withPins) unset($s['pin'], $s['email'], $s['phone']); return $s; }, array_values(array_filter($l['staff'] ?? [], fn($s) => !empty($s['active']))));
   return ['slug' => $l['slug'], 'name' => $l['name'], 'city' => $l['city'] ?? '', 'status' => $l['status'], 'positions' => $l['positions'] ?? [], 'staff' => $staff, 'rules' => $l['rules'] ?? []];
 }
 // kto jest zalogowany w lokalu: 'boss' (właściciel/admin) albo id pracownika
@@ -139,6 +139,11 @@ function cleanConfig(array $in, array $old): array {
       'min' => $mn, 'max' => $mx,
       'noWd' => array_values(array_unique(array_filter(array_map('intval', (array)($s['noWd'] ?? [])), fn($w) => $w >= 0 && $w <= 6))),
       'picksOwn' => !empty($s['picksOwn']), 'manager' => !empty($s['manager']), 'active' => true];
+    // kontakt (opcjonalny) – tylko do powiadomień o grafiku, widoczny wyłącznie w panelu
+    $em = strtolower(str($s['email'] ?? '', 120));
+    if ($em !== '') { if (!filter_var($em, FILTER_VALIDATE_EMAIL)) fail("Popraw e-mail przy osobie: $name."); $staff[count($staff)-1]['email'] = $em; }
+    $ph = preg_replace('/[^0-9+]/', '', (string)($s['phone'] ?? ''));
+    if ($ph !== '') { if (!preg_match('/^\+?[0-9]{9,15}$/', $ph)) fail("Popraw numer telefonu przy osobie: $name."); $staff[count($staff)-1]['phone'] = $ph; }
   }
   $ids = array_column($staff, 'id');
   $r = (array)($in['rules'] ?? []);
@@ -195,7 +200,7 @@ switch ($action) {
     }
     $u = ['id' => $uid, 'email' => $email, 'name' => $name, 'phone' => str($in['phone'] ?? '', 30),
       'hash' => password_hash($pass, PASSWORD_DEFAULT), 'role' => $isSetup ? 'admin' : 'owner',
-      'status' => $isSetup ? 'active' : 'pending', 'lokal' => $slug, 'staffCount' => str($in['staffCount'] ?? '', 10), 'createdAt' => now()];
+      'status' => $isSetup ? 'active' : 'pending', 'lokal' => $slug, 'staffCount' => str($in['staffCount'] ?? '', 10), 'createdAt' => now(), 'terms' => ['version' => '2026-10-28', 'at' => now(), 'ip' => $ip]];
     withf('users', function ($d) use ($u) { $d[] = $u; return $d; });
     session_regenerate_id(true); $_SESSION['uid'] = $uid;
     if (!$isSetup) {
