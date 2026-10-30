@@ -182,6 +182,40 @@ section{padding-block:96px}
 footer{padding-block:32px;font-size:14px;color:var(--muted)}
 footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 
+
+/* ---------- cennik ---------- */
+.price-wrap{display:grid;grid-template-columns:1fr 1.15fr;gap:56px;align-items:start}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.plan{background:var(--paper);border:2px solid var(--line);border-radius:8px;padding:24px 22px;display:flex;flex-direction:column;gap:6px;position:relative}
+.plan.best{border-color:var(--ink);box-shadow:6px 6px 0 var(--tape)}
+.plan .tag{position:absolute;top:-13px;left:18px;background:var(--tape);color:var(--tape-ink);font:700 12px/1 var(--f-body);padding:6px 9px;border-radius:3px;letter-spacing:.03em;text-transform:uppercase}
+.plan .nm{font:700 15px var(--f-body);color:var(--muted)}
+.plan .amt{font:900 64px/.9 var(--f-display);letter-spacing:-.01em}
+.plan .amt small{font:600 16px var(--f-body);color:var(--muted);margin-left:4px;letter-spacing:0}
+.plan .sub{font-size:14px;color:var(--muted)}
+.trial{grid-column:1/-1;display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.trial .hint{font-size:14px;color:var(--muted)}
+.incl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.incl li{display:grid;grid-template-columns:26px 1fr;gap:8px;font-size:17px}
+.incl li::before{content:"";width:18px;height:18px;margin-top:4px;border-radius:50%;background:var(--tape) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M5 9.3l2.6 2.6L13 6.5' fill='none' stroke='%231a2127' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/18px no-repeat}
+.incl li span{display:block;color:var(--muted);font-size:15px}
+.vat{font-size:13px;color:var(--muted);margin-top:14px}
+
+/* ---------- FAQ ---------- */
+.faq{display:grid;grid-template-columns:1fr 1.6fr;gap:56px;align-items:start}
+.qa{border-top:2px solid var(--ink)}
+.qa details{border-bottom:1px solid var(--line)}
+.qa summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:16px;align-items:center;padding:20px 2px;font:700 18px/1.3 var(--f-body)}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::after{content:"+";flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font:700 20px/1 var(--f-body);transition:transform .2s}
+.qa details[open] summary::after{transform:rotate(45deg);background:var(--tape);border-color:var(--tape);color:var(--tape-ink)}
+.qa summary:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.qa details p{padding:0 44px 22px 2px;color:var(--muted);font-size:16.5px}
+.faq .side p{color:var(--muted);font-size:17px;margin-top:16px}
+.faq .side a{font-weight:700}
+@media (max-width:900px){.price-wrap,.faq{grid-template-columns:1fr;gap:36px}}
+@media (max-width:520px){.plans{grid-template-columns:1fr;gap:22px}.plan .amt{font-size:56px}.qa details p{padding-right:4px}}
+
 /* ---------- telefon / wąskie ekrany ---------- */
 /* średnie ekrany: tekst nad telefonami */
 @media (max-width:1180px){
@@ -228,12 +262,13 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 @media (prefers-reduced-motion:reduce){.pw,.btn,.msg,.mstat,.mcal b,.mgrid>*{transition:none!important;animation:none!important}}
 </style>
 <script>if(!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("anim")</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Czy pracownicy muszą instalować aplikację albo zakładać konto?", "acceptedAnswer": {"@type": "Answer", "text": "Nie. Dostają od Ciebie link do grafiku lokalu i 4-cyfrowy PIN. Klikają swoje imię, wpisują PIN i zaznaczają dni. Działa w każdej przeglądarce w telefonie."}}, {"@type": "Question", "name": "Ile trwa wdrożenie?", "acceptedAnswer": {"@type": "Answer", "text": "Konto aktywujemy zwykle w ciągu jednego dnia roboczego. Potem razem ustawiamy stanowiska, pracowników i zasady. Większości lokali zajmuje to jedną rozmowę. Od następnego miesiąca grafik układasz sam w kilka kliknięć."}}, {"@type": "Question", "name": "Mój lokal ma nietypowe zasady. Czy Zmiano sobie poradzi?", "acceptedAnswer": {"@type": "Answer", "text": "Właśnie po to powstało. Pary osób, role zależne od składu zmiany, stałe wolne dni, limity dni w miesiącu, maksymalnie kilka dni z rzędu, osoby, które same wybierają swoje dni. Jeśli czegoś nie da się spełnić, Zmiano pokaże co i dlaczego."}}, {"@type": "Question", "name": "Czy mogę poprawić grafik ręcznie?", "acceptedAnswer": {"@type": "Answer", "text": "Tak. Każdy dzień zmienisz jednym kliknięciem, a Zmiano od razu pokaże, czy poprawka nie łamie zasad. Gdy coś zmienia się w trakcie miesiąca, np. zamykasz lokal w czwartek, grafik dopasuje się sam, ruszając jak najmniej."}}, {"@type": "Question", "name": "Co z danymi pracowników i RODO?", "acceptedAnswer": {"@type": "Answer", "text": "Zawieramy z Tobą umowę powierzenia przetwarzania danych, w cenie i bez papierów, przy rejestracji. Zbieramy tylko to, co potrzebne do grafiku. Pracownik widzi wyłącznie swoją dyspozycyjność, nie cudzą. Dane są na serwerach w Unii Europejskiej, z codzienną kopią zapasową."}}, {"@type": "Question", "name": "Czy Zmiano pilnuje Kodeksu pracy?", "acceptedAnswer": {"@type": "Answer", "text": "Pilnuje zasad, które ustawisz: liczby dni pracy, maksymalnej liczby dni z rzędu, dni wolnych. Nie liczy godzin pracy ani nie zastępuje kadr. Za zgodność grafiku z przepisami i umowami odpowiada pracodawca, a Zmiano pomaga jej nie przeoczyć."}}, {"@type": "Question", "name": "Mam więcej niż 20 osób albo kilka lokali.", "acceptedAnswer": {"@type": "Answer", "text": "Napisz do nas. Każdy lokal ma osobny grafik i osobny link dla ekipy, a dla kilku lokali jednego właściciela przygotujemy wspólną ofertę."}}, {"@type": "Question", "name": "Jak zrezygnować?", "acceptedAnswer": {"@type": "Answer", "text": "Wystarczy mail. W planie miesięcznym bez okresu wypowiedzenia. Na życzenie przekażemy Ci eksport grafików i dyspozycyjności, a potem usuniemy dane lokalu."}}]}</script>
 </head>
 <body>
 
 <nav><div class="in">
   <a class="logo" href="/" aria-label="Zmiano – strona główna">zmiano<i></i></a>
-  <div style="display:flex;gap:20px;align-items:center"><a class="k" href="#kontakt">Kontakt</a><a class="k" href="/panel">Zaloguj się</a></div>
+  <div style="display:flex;gap:20px;align-items:center"><a class="k" href="#cennik">Cennik</a><a class="k" href="#kontakt">Kontakt</a><a class="k" href="/panel">Zaloguj się</a></div>
 </div></nav>
 
 <header class="hero"><div class="in hero-grid">
@@ -330,7 +365,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
         <tr><td>Logowanie pracownika</td><td data-l="Typowy program">Konto, e-mail, aplikacja do pobrania</td><td data-l="Zmiano">Imię i 4-cyfrowy PIN w przeglądarce</td></tr>
         <tr><td>Konfiguracja</td><td data-l="Typowy program">Sam ustawiasz stanowiska, szablony i reguły</td><td data-l="Zmiano">Opowiadasz, jak pracujecie, a my ustawiamy za Ciebie</td></tr>
         <tr><td>Zasady „kto z kim”</td><td data-l="Typowy program">Zwykle tylko stanowiska i kwalifikacje</td><td data-l="Zmiano">Pary, role zależne od składu, stałe wolne dni</td></tr>
-        <tr><td>Cena</td><td data-l="Typowy program">Za każdego pracownika, co miesiąc</td><td data-l="Zmiano">Jedna stała cena za lokal</td></tr>
+        <tr><td>Cena</td><td data-l="Typowy program">Za każdego pracownika, co miesiąc</td><td data-l="Zmiano">Jedna stała cena za lokal, <a href="#cennik">od 49 zł miesięcznie</a></td></tr>
         <tr><td>Dodatki</td><td data-l="Typowy program">Rejestracja czasu, urlopy, kadry, raporty</td><td data-l="Zmiano">Tylko grafik, za to porządnie, z PDF-em A4</td></tr>
       </tbody>
     </table>
@@ -342,6 +377,58 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   <div class="who"><span>sushi bary</span><span>pizzerie</span><span>bistro</span><span>kawiarnie</span><span>food trucki</span><span>bary z dowozem</span></div>
 </div></section>
 
+<section class="band" id="cennik"><div class="in price-wrap">
+  <div>
+    <div class="head" style="margin-bottom:28px">
+      <h2>Jedna cena za lokal. Bez liczenia ludzi.</h2>
+      <p>Płacisz za lokal, nie za pracownika. Zatrudniasz kogoś na sezon? Dodajesz go w minutę i nic nie dopłacasz.</p>
+    </div>
+    <ul class="incl">
+      <li><div>Grafik na każdy miesiąc, układany automatycznie<span>Bez limitu generowania i poprawek.</span></div></li>
+      <li><div>Wdrożenie z naszym zespołem w cenie<span>Ustawiamy zasady lokalu razem z Tobą.</span></div></li>
+      <li><div>Dyspozycyjność z telefonu<span>Imię i PIN, bez aplikacji i kont.</span></div></li>
+      <li><div>Manager grafiku z PIN-em<span>Zastępca ułoży grafik pod Twoją nieobecność.</span></div></li>
+      <li><div>PDF A4 do druku i wysyłki na grupę</div></li>
+      <li><div>Codzienne kopie zapasowe, serwery w Unii Europejskiej</div></li>
+    </ul>
+  </div>
+  <div class="plans">
+    <div class="plan">
+      <span class="nm">Co miesiąc</span>
+      <span class="amt">99<small>zł / mies.</small></span>
+      <span class="sub">Rezygnujesz kiedy chcesz, bez okresu wypowiedzenia.</span>
+    </div>
+    <div class="plan best">
+      <span class="tag">Taniej o połowę</span>
+      <span class="nm">Za cały rok</span>
+      <span class="amt">49<small>zł / mies.</small></span>
+      <span class="sub">588 zł płatne raz w roku.</span>
+    </div>
+    <div class="trial">
+      <a class="btn" href="/panel#rejestracja">Wypróbuj 30 dni za darmo</a>
+      <span class="hint">Bez karty i bez zobowiązań. O cenie przypomnimy przed końcem okresu próbnego.</span>
+    </div>
+    <p class="vat" style="grid-column:1/-1">Ceny netto, doliczamy 23% VAT. Wystawiamy fakturę VAT.</p>
+  </div>
+</div></section>
+
+<section><div class="in faq">
+  <div class="side">
+    <h2>Pytania przed startem</h2>
+    <p>Nie ma tu Twojego pytania? Napisz na <a href="mailto:kontakt@zmiano.pl">kontakt@zmiano.pl</a>, zwykle odpowiadamy tego samego dnia.</p>
+  </div>
+  <div class="qa">
+    <details><summary>Czy pracownicy muszą instalować aplikację albo zakładać konto?</summary><p>Nie. Dostają od Ciebie link do grafiku lokalu i 4-cyfrowy PIN. Klikają swoje imię, wpisują PIN i zaznaczają dni. Działa w każdej przeglądarce w telefonie.</p></details>
+    <details><summary>Ile trwa wdrożenie?</summary><p>Konto aktywujemy zwykle w ciągu jednego dnia roboczego. Potem razem ustawiamy stanowiska, pracowników i zasady. Większości lokali zajmuje to jedną rozmowę. Od następnego miesiąca grafik układasz sam w kilka kliknięć.</p></details>
+    <details><summary>Mój lokal ma nietypowe zasady. Czy Zmiano sobie poradzi?</summary><p>Właśnie po to powstało. Pary osób, role zależne od składu zmiany, stałe wolne dni, limity dni w miesiącu, maksymalnie kilka dni z rzędu, osoby, które same wybierają swoje dni. Jeśli czegoś nie da się spełnić, Zmiano pokaże co i dlaczego.</p></details>
+    <details><summary>Czy mogę poprawić grafik ręcznie?</summary><p>Tak. Każdy dzień zmienisz jednym kliknięciem, a Zmiano od razu pokaże, czy poprawka nie łamie zasad. Gdy coś zmienia się w trakcie miesiąca, np. zamykasz lokal w czwartek, grafik dopasuje się sam, ruszając jak najmniej.</p></details>
+    <details><summary>Co z danymi pracowników i RODO?</summary><p>Zawieramy z Tobą umowę powierzenia przetwarzania danych, w cenie i bez papierów, przy rejestracji. Zbieramy tylko to, co potrzebne do grafiku. Pracownik widzi wyłącznie swoją dyspozycyjność, nie cudzą. Dane są na serwerach w Unii Europejskiej, z codzienną kopią zapasową.</p></details>
+    <details><summary>Czy Zmiano pilnuje Kodeksu pracy?</summary><p>Pilnuje zasad, które ustawisz: liczby dni pracy, maksymalnej liczby dni z rzędu, dni wolnych. Nie liczy godzin pracy ani nie zastępuje kadr. Za zgodność grafiku z przepisami i umowami odpowiada pracodawca, a Zmiano pomaga jej nie przeoczyć.</p></details>
+    <details><summary>Mam więcej niż 20 osób albo kilka lokali.</summary><p>Napisz do nas. Każdy lokal ma osobny grafik i osobny link dla ekipy, a dla kilku lokali jednego właściciela przygotujemy wspólną ofertę.</p></details>
+    <details><summary>Jak zrezygnować?</summary><p>Wystarczy mail. W planie miesięcznym bez okresu wypowiedzenia. Na życzenie przekażemy Ci eksport grafików i dyspozycyjności, a potem usuniemy dane lokalu.</p></details>
+  </div>
+</div></section>
+
 <section class="contact" id="kontakt"><div class="in">
   <div style="display:flex;flex-direction:column;gap:18px">
     <h2>Pierwszy grafik ustawiamy razem</h2>
@@ -349,7 +436,7 @@ footer .in{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   </div>
   <div class="box">
     <a class="btn" href="/panel#rejestracja" style="background:var(--ink);color:var(--tape);box-shadow:none">Załóż konto lokalu</a>
-    <span class="small">Wolisz najpierw porozmawiać? Napisz:</span>
+    <span class="small">30 dni za darmo, bez karty. Wolisz najpierw porozmawiać? Napisz:</span>
     <a class="mail" href="mailto:kontakt@zmiano.pl?subject=Grafik%20dla%20mojego%20lokalu">kontakt@zmiano.pl</a>
     <span class="small">Pracujesz już w lokalu na Zmiano? Wejdź przez link do grafiku od managera. Konto lokalu: <a href="/panel">logowanie</a>.</span>
   </div>
